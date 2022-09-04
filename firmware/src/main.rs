@@ -99,11 +99,223 @@ fn main() -> ! {
     loop {}
 }
 
+/*
+Template:
+
+digit!(
+      .
+    .   .
+      .
+    .   .
+      .    .
+)
+*/
+macro_rules! digit {
+    (@bit .) => {
+        0
+    };
+    (@bit 0) => {
+        0
+    };
+    (@bit $x:tt) => {
+        1
+    };
+    (
+           $a:tt
+        $f:tt $b:tt
+           $g:tt
+        $e:tt $c:tt
+           $d:tt $dp:tt
+    ) => {
+        (digit!(@bit $a) << 0)
+        | (digit!(@bit $b) << 1)
+        | (digit!(@bit $c) << 2)
+        | (digit!(@bit $d) << 3)
+        | (digit!(@bit $e) << 4)
+        | (digit!(@bit $f) << 5)
+        | (digit!(@bit $g) << 6)
+        | (digit!(@bit $dp) << 7)
+    };
+}
+
+/*
+Template:
+
+double_digit!(
+      .         .
+    .   .     .   .
+      .         .
+    .   .     .   .
+      .    .    .    .
+)
+*/
+macro_rules! double_digit {
+    (
+        $a1:tt           $a2:tt
+     $f1:tt $b1:tt    $f2:tt $b2:tt
+        $g1:tt           $g2:tt
+     $e1:tt $c1:tt    $e2:tt $c2:tt
+        $d1:tt $dp1:tt   $d2:tt $dp2:tt
+    ) => {
+        (
+            digit!(
+                $a1
+                $f1 $b1
+                $g1
+                $e1 $c1
+                $d1 $dp1
+            ) << 8
+        ) | (
+            digit!(
+                $a2
+              $f2 $b2
+                $g2
+              $e2 $c2
+                $d2 $dp2
+            ) << 0
+        )
+    }
+}
+
 const MIN_DUTY: u16 = u16::MIN;
 const MAX_DUTY: u16 = u16::MAX;
 
-const ANIMATION: &[u16] = WIPER;
+const ANIMATION: &[u16] = MIRROR_CIRCLES;
 
-const CIRCLES: &[u16] = &[0x0101, 0x0202, 0x0404, 0x0808, 0x1010, 0x2020];
-const MIRROR_CIRCLES: &[u16] = &[0x0101, 0x0220, 0x0410, 0x0808, 0x1004, 0x2002];
-const WIPER: &[u16] = &[0x3000, 0x0600, 0x0030, 0x0006, 0x0030, 0x0600];
+#[allow(dead_code)]
+const CIRCLES: &[u16] = &[
+    double_digit!(
+        1         1
+      .   .     .   .
+        .         .
+      .   .     .   .
+        .    .    .    .
+    ),
+    double_digit!(
+        .         .
+      .   1     .   1
+        .         .
+      .   .     .   .
+        .    .    .    .
+    ),
+    double_digit!(
+        .         .
+      .   .     .   .
+        .         .
+      .   1     .   1
+        .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   .     .   .
+          .         .
+        .   .     .   .
+          1    .    1    .
+    ),
+    double_digit!(
+          .         .
+        .   .     .   .
+          .         .
+        1   .     1   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        1   .     1   .
+          .         .
+        .   .     .   .
+          .    .    .    .
+    ),
+];
+
+#[allow(dead_code)]
+const MIRROR_CIRCLES: &[u16] = &[
+    double_digit!(
+        1         1
+      .   .     .   .
+        .         .
+      .   .     .   .
+        .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   1     1   .
+          .         .
+        .   .     .   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   .     .   .
+          .         .
+        .   1     1   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   .     .   .
+          .         .
+        .   .     .   .
+          1    .    1    .
+    ),
+    double_digit!(
+          .         .
+        .   .     .   .
+          .         .
+        1   .     .   1
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        1   .     .   1
+          .         .
+        .   .     .   .
+          .    .    .    .
+    ),
+];
+
+#[allow(dead_code)]
+const WIPER: &[u16] = &[
+    double_digit!(
+          .         .
+        1   .     .   .
+          .         .
+        1   .     .   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   1     .   .
+          .         .
+        .   1     .   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   .     1   .
+          .         .
+        .   .     1   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   .     .   1
+          .         .
+        .   .     .   1
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   .     1   .
+          .         .
+        .   .     1   .
+          .    .    .    .
+    ),
+    double_digit!(
+          .         .
+        .   1     .   .
+          .         .
+        .   1     .   .
+          .    .    .    .
+    ),
+];
