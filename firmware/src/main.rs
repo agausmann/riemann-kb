@@ -6,14 +6,14 @@ use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, interrupt};
 use embedded_hal::{
     blocking::spi::Write,
-    digital::v2::{OutputPin, ToggleableOutputPin},
+    digital::v2::OutputPin,
     spi::{self, Phase, Polarity},
     PwmPin,
 };
 use fugit::RateExtU32;
 use rp2040_hal::{
     clocks, entry,
-    gpio::{FunctionPwm, FunctionSpi, Pins, Pwm},
+    gpio::{DynPin, FunctionPwm, FunctionSpi, Pins},
     pac::Peripherals,
     pwm::Slices,
     Clock, Sio, Spi, Watchdog,
@@ -56,6 +56,38 @@ fn main() -> ! {
     let sio = Sio::new(dp.SIO);
     let pins = Pins::new(dp.IO_BANK0, dp.PADS_BANK0, sio.gpio_bank0, &mut dp.RESETS);
     let pwms = Slices::new(dp.PWM, &mut dp.RESETS);
+
+    let rows: [DynPin; 10] = [
+        pins.gpio2.into_pull_up_input().into(),
+        pins.gpio3.into_pull_up_input().into(),
+        pins.gpio4.into_pull_up_input().into(),
+        pins.gpio5.into_pull_up_input().into(),
+        pins.gpio6.into_pull_up_input().into(),
+        pins.gpio26.into_pull_up_input().into(),
+        pins.gpio22.into_pull_up_input().into(),
+        pins.gpio21.into_pull_up_input().into(),
+        pins.gpio20.into_pull_up_input().into(),
+        pins.gpio19.into_pull_up_input().into(),
+    ];
+
+    let columns: [DynPin; 6] = [
+        pins.gpio7.into_push_pull_output().into(),
+        pins.gpio8.into_push_pull_output().into(),
+        pins.gpio9.into_push_pull_output().into(),
+        pins.gpio10.into_push_pull_output().into(),
+        pins.gpio11.into_push_pull_output().into(),
+        pins.gpio12.into_push_pull_output().into(),
+    ];
+
+    let left_encoder: [DynPin; 2] = [
+        pins.gpio0.into_pull_up_input().into(),
+        pins.gpio1.into_pull_up_input().into(),
+    ];
+
+    let right_encoder: [DynPin; 2] = [
+        pins.gpio27.into_pull_up_input().into(),
+        pins.gpio28.into_pull_up_input().into(),
+    ];
 
     let mut indicator = pins.gpio25.into_readable_output();
     let mut delay = Delay::new(cp.SYST, clocks.system_clock.freq().to_Hz());
