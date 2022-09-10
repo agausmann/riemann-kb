@@ -172,7 +172,7 @@ fn main() -> ! {
     let mut layer_mask = 1u8;
     let mut pressed_keys = [0u8; 10];
     let mut report = NkroKeyboardReport::new();
-    let mut sent = false;
+    let mut changed = false;
 
     let mut indicator = pins.gpio25.into_readable_output();
     let mut delay = Delay::new(cp.SYST, clocks.system_clock.freq().to_Hz());
@@ -205,7 +205,6 @@ fn main() -> ! {
     loop {
         delay.delay_us(500);
 
-        let mut changed = false;
         for (i, row) in rows.iter_mut().enumerate() {
             row.set_low().unwrap();
             for (j, col) in columns.iter().enumerate() {
@@ -269,15 +268,12 @@ fn main() -> ! {
             }
             row.set_high().unwrap();
         }
-        if changed {
-            sent = false;
-        }
 
-        if !sent {
+        if changed {
             cortex_m::interrupt::free(|_cs| {
                 let usb = unsafe { USB_CTX.assume_init_mut() };
                 if usb.hid.push_input(&report).is_ok() {
-                    sent = true;
+                    changed = false;
                 }
             });
         }
