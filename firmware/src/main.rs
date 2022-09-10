@@ -203,7 +203,7 @@ fn main() -> ! {
     unsafe { cortex_m::interrupt::enable() };
 
     loop {
-        delay.delay_us(500);
+        delay.delay_us(200);
 
         for (i, row) in rows.iter_mut().enumerate() {
             row.set_low().unwrap();
