@@ -6,9 +6,15 @@ mod keycode;
 mod keymap;
 mod nkro;
 
-use core::{mem::MaybeUninit, panic::PanicInfo};
+use core::{cell::Cell, mem::MaybeUninit, panic::PanicInfo};
 
-use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC, prelude::_embedded_hal_timer_CountDown};
+use cortex_m::{
+    asm::wfi,
+    delay::Delay,
+    interrupt::Mutex,
+    peripheral::NVIC,
+    prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_timer_CountDown},
+};
 use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
     spi::{self, Phase, Polarity},
@@ -23,8 +29,11 @@ use keymap::LAYERS;
 use nkro::NkroKeyboardReport;
 use rp2040_hal::{
     clocks, entry,
-    gpio::{bank0::Gpio23, DynPin, FunctionPwm, FunctionSpi, Pin, Pins, ReadableOutput},
-    pac::{interrupt, Interrupt, Peripherals},
+    gpio::{
+        bank0::{Gpio13, Gpio23},
+        DynPin, FunctionPwm, FunctionSpi, Pin, Pins, PushPullOutput, ReadableOutput,
+    },
+    pac::{interrupt, Interrupt, Peripherals, SPI1},
     pwm::Slices,
     timer::Alarm,
     usb::UsbBus,
@@ -67,13 +76,31 @@ struct UsbContext {
 }
 
 impl UsbContext {
-    fn poll(&mut self) {
+    fn poll(&mut self, flags: &UsbFlags) {
         self.device.poll(&mut [&mut self.hid]);
+        let mut leds = [0u8; 1];
+        if self.hid.pull_raw_output(&mut leds).is_ok() {
+            flags.output.set(Some(Leds {
+                raw: leds[0],
+                num: leds[0] & (1 << 0) != 0,
+                caps: leds[0] & (1 << 1) != 0,
+                scroll: leds[0] & (1 << 2) != 0,
+            }));
+        }
     }
+}
+
+struct UsbFlags {
+    output: Cell<Option<Leds>>,
 }
 
 // Resources sent to the USB interrupt contexts.
 static mut USB_CTX: MaybeUninit<UsbContext> = MaybeUninit::uninit();
+
+// TODO more granular mutex based on which interrupts access this
+static USB_FLAGS: Mutex<UsbFlags> = Mutex::new(UsbFlags {
+    output: Cell::new(None),
+});
 
 struct PanicContext {
     indicator: Pin<Gpio23, ReadableOutput>,
@@ -87,10 +114,23 @@ struct System {
     columns: [DynPin; 6],
     left_encoder: [DynPin; 2],
     right_encoder: [DynPin; 2],
+    spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
+    led_latch: Pin<Gpio13, PushPullOutput>,
     pressed_keys: [u8; 10],
+    // Power-on state of encoders is not predictable:
+    encoder_states: Option<[u8; 2]>,
     layer_mask: u8,
     report: NkroKeyboardReport,
+    leds: Leds,
     changed: bool,
+}
+
+#[allow(dead_code)]
+struct Leds {
+    raw: u8,
+    caps: bool,
+    num: bool,
+    scroll: bool,
 }
 
 impl System {
@@ -162,17 +202,32 @@ impl System {
         }
     }
 
-    fn poll_hid(&mut self, usb: &mut UsbContext) {
+    fn poll_encoders(&mut self) {}
+
+    fn poll_hid(&mut self, usb: &mut UsbContext, flags: &UsbFlags) {
         if self.changed && usb.hid.push_input(&self.report).is_ok() {
             self.changed = false;
         }
+        if let Some(leds) = flags.output.take() {
+            self.leds = leds;
+        }
+    }
+
+    fn update_leds(&mut self) {
+        let mut state = 0u16;
+        if self.leds.caps {
+            // Turn on right DP
+            state |= 1 << 7;
+        }
+        self.spi.write(&state.to_le_bytes()).unwrap();
+        self.led_latch.set_high().unwrap();
+        self.led_latch.set_low().unwrap();
     }
 }
 
 #[entry]
 fn main() -> ! {
     let mut dp = Peripherals::take().unwrap();
-    let cp = cortex_m::Peripherals::take().unwrap();
 
     let mut watchdog = Watchdog::new(dp.WATCHDOG);
 
@@ -229,16 +284,6 @@ fn main() -> ! {
 
     let _sclk = pins.gpio14.into_mode::<FunctionSpi>();
     let _mosi = pins.gpio15.into_mode::<FunctionSpi>();
-    let mut latch = pins.gpio13.into_push_pull_output();
-    let mut spi: Spi<_, _, 8> = Spi::new(dp.SPI1).init(
-        &mut dp.RESETS,
-        clocks.peripheral_clock.freq(),
-        1.MHz(),
-        &spi::Mode {
-            polarity: Polarity::IdleLow,
-            phase: Phase::CaptureOnFirstTransition,
-        },
-    );
 
     let dim_pin = pins.gpio16.into_mode::<FunctionPwm>();
     let mut dim_slice = pwms.pwm0;
@@ -247,7 +292,7 @@ fn main() -> ! {
     dim_channel.output_to(dim_pin);
     dim_channel.enable();
 
-    dim_channel.set_duty(0xffff);
+    dim_channel.set_duty(0x0000);
 
     let mut system = System {
         rows: [
@@ -278,9 +323,26 @@ fn main() -> ! {
             pins.gpio27.into_pull_up_input().into(),
             pins.gpio28.into_pull_up_input().into(),
         ],
+        spi: Spi::new(dp.SPI1).init(
+            &mut dp.RESETS,
+            clocks.peripheral_clock.freq(),
+            1.MHz(),
+            &spi::Mode {
+                polarity: Polarity::IdleLow,
+                phase: Phase::CaptureOnFirstTransition,
+            },
+        ),
+        led_latch: pins.gpio13.into_push_pull_output(),
         pressed_keys: [0u8; 10],
+        encoder_states: None,
         layer_mask: 1,
         report: NkroKeyboardReport::new(),
+        leds: Leds {
+            raw: 0,
+            caps: false,
+            num: false,
+            scroll: false,
+        },
         changed: false,
     };
 
@@ -290,8 +352,14 @@ fn main() -> ! {
     wakeup_alarm.enable_interrupt();
     unsafe { NVIC::unmask(Interrupt::TIMER_IRQ_0) };
 
-    let mut matrix_countdown = timer.count_down();
-    matrix_countdown.start(200.micros());
+    let mut matrix_timer = timer.count_down();
+    matrix_timer.start(1.millis());
+
+    let mut encoder_timer = timer.count_down();
+    encoder_timer.start(1.millis());
+
+    let mut leds_timer = timer.count_down();
+    leds_timer.start(10.millis());
 
     let mut indicator = pins.gpio25.into_readable_output();
     indicator.set_high().unwrap();
@@ -299,14 +367,24 @@ fn main() -> ! {
     unsafe { cortex_m::interrupt::enable() };
 
     loop {
-        if matrix_countdown.wait().is_ok() {
+        if matrix_timer.wait().is_ok() {
             system.poll_matrix();
-            cortex_m::interrupt::free(|_cs| {
+            cortex_m::interrupt::free(|cs| {
                 let usb = unsafe { USB_CTX.assume_init_mut() };
-                system.poll_hid(usb);
+                let flags = USB_FLAGS.borrow(cs);
+                system.poll_hid(usb, flags);
             })
+        } else if encoder_timer.wait().is_ok() {
+            system.poll_encoders();
+            cortex_m::interrupt::free(|cs| {
+                let usb = unsafe { USB_CTX.assume_init_mut() };
+                let flags = USB_FLAGS.borrow(cs);
+                system.poll_hid(usb, flags);
+            })
+        } else if leds_timer.wait().is_ok() {
+            system.update_leds();
         } else {
-            wakeup_alarm.schedule::<1, 1_000_000>(10.micros()).unwrap();
+            wakeup_alarm.schedule::<1, 1_000_000>(100.micros()).unwrap();
             wfi();
         }
     }
@@ -314,8 +392,11 @@ fn main() -> ! {
 
 #[interrupt]
 fn USBCTRL_IRQ() {
-    let ctx = unsafe { USB_CTX.assume_init_mut() };
-    ctx.poll();
+    cortex_m::interrupt::free(|cs| {
+        let ctx = unsafe { USB_CTX.assume_init_mut() };
+        let flags = USB_FLAGS.borrow(cs);
+        ctx.poll(flags);
+    })
 }
 
 #[interrupt]
