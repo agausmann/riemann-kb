@@ -8,13 +8,13 @@ mod nkro;
 
 use core::{mem::MaybeUninit, panic::PanicInfo};
 
-use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
+use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC, prelude::_embedded_hal_timer_CountDown};
 use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
     spi::{self, Phase, Polarity},
     PwmPin,
 };
-use fugit::{HertzU32, RateExtU32};
+use fugit::{ExtU32, HertzU32, RateExtU32};
 use keycode::{
     qmk::{KC_NO, KC_TRNS},
     Keycode, LayerAction,
@@ -27,7 +27,7 @@ use rp2040_hal::{
     pac::{interrupt, Interrupt, Peripherals},
     pwm::Slices,
     usb::UsbBus,
-    Clock, Sio, Spi, Watchdog,
+    Clock, Sio, Spi, Timer, Watchdog,
 };
 use usb_device::{
     class_prelude::UsbBusAllocator,
@@ -80,6 +80,93 @@ struct PanicContext {
 }
 
 static mut PANIC_CTX: Option<PanicContext> = None;
+
+struct System {
+    rows: [DynPin; 10],
+    columns: [DynPin; 6],
+    left_encoder: [DynPin; 2],
+    right_encoder: [DynPin; 2],
+    pressed_keys: [u8; 10],
+    layer_mask: u8,
+    report: NkroKeyboardReport,
+    changed: bool,
+}
+
+impl System {
+    fn poll_matrix(&mut self) {
+        let num_rows = self.rows.len();
+
+        for (i, row) in self.rows.iter_mut().enumerate() {
+            row.set_low().unwrap();
+            for (j, col) in self.columns.iter().enumerate() {
+                // Reverse index for right half
+                let j = if i < num_rows / 2 {
+                    j
+                } else {
+                    self.columns.len() - 1 - j
+                };
+
+                let prev_pressed = (self.pressed_keys[i] & (1 << j)) != 0;
+                let pressed = col.is_low().unwrap();
+
+                if prev_pressed != pressed {
+                    let keycode = LAYERS
+                        .iter()
+                        .enumerate()
+                        .rev()
+                        .filter(|(k, _layer)| (self.layer_mask & (1 << k)) != 0)
+                        .map(|(_k, layer)| layer[i][j])
+                        .find(|kc| *kc != KC_TRNS)
+                        .unwrap_or(KC_NO);
+                    match keycode {
+                        Keycode::Hid(hid_keycode) => {
+                            if pressed {
+                                self.report.press(hid_keycode as u8);
+                            } else {
+                                self.report.release(hid_keycode as u8);
+                            }
+                        }
+                        Keycode::Layer(layer_keycode) => {
+                            match layer_keycode.action() {
+                                LayerAction::Momentary => {
+                                    if pressed {
+                                        self.layer_mask |= 1 << layer_keycode.layer();
+                                    } else {
+                                        self.layer_mask &= !(1 << layer_keycode.layer());
+                                    }
+                                    self.report.clear_all_but_mods();
+                                }
+                                LayerAction::Toggle => {
+                                    if pressed {
+                                        self.layer_mask ^= 1 << layer_keycode.layer();
+                                        self.report.clear_all_but_mods();
+                                    }
+                                }
+                                LayerAction::Oneshot => {} //TODO
+                                LayerAction::To => {}      //TODO
+                            }
+                        }
+                        _ => {}
+                    }
+                    self.changed = true;
+                }
+
+                if pressed {
+                    self.pressed_keys[i] |= 1 << j;
+                } else {
+                    self.pressed_keys[i] &= !(1 << j);
+                }
+            }
+            row.set_high().unwrap();
+        }
+    }
+
+    fn poll_hid(&mut self, usb: &mut UsbContext) {
+        if self.changed && usb.hid.push_input(&self.report).is_ok() {
+            self.changed = false;
+        }
+    }
+}
 
 #[entry]
 fn main() -> ! {
@@ -139,44 +226,6 @@ fn main() -> ! {
         NVIC::unmask(Interrupt::USBCTRL_IRQ);
     }
 
-    let mut rows: [DynPin; 10] = [
-        pins.gpio2.into_push_pull_output().into(),
-        pins.gpio3.into_push_pull_output().into(),
-        pins.gpio4.into_push_pull_output().into(),
-        pins.gpio5.into_push_pull_output().into(),
-        pins.gpio6.into_push_pull_output().into(),
-        pins.gpio26.into_push_pull_output().into(),
-        pins.gpio22.into_push_pull_output().into(),
-        pins.gpio21.into_push_pull_output().into(),
-        pins.gpio20.into_push_pull_output().into(),
-        pins.gpio19.into_push_pull_output().into(),
-    ];
-    // avoid conflicting with mutable borrows:
-    let num_rows = rows.len();
-    let columns: [DynPin; 6] = [
-        pins.gpio7.into_pull_up_input().into(),
-        pins.gpio8.into_pull_up_input().into(),
-        pins.gpio9.into_pull_up_input().into(),
-        pins.gpio10.into_pull_up_input().into(),
-        pins.gpio11.into_pull_up_input().into(),
-        pins.gpio12.into_pull_up_input().into(),
-    ];
-    let left_encoder: [DynPin; 2] = [
-        pins.gpio0.into_pull_up_input().into(),
-        pins.gpio1.into_pull_up_input().into(),
-    ];
-    let right_encoder: [DynPin; 2] = [
-        pins.gpio27.into_pull_up_input().into(),
-        pins.gpio28.into_pull_up_input().into(),
-    ];
-    let mut layer_mask = 1u8;
-    let mut pressed_keys = [0u8; 10];
-    let mut report = NkroKeyboardReport::new();
-    let mut changed = false;
-
-    let mut indicator = pins.gpio25.into_readable_output();
-    let mut delay = Delay::new(cp.SYST, clocks.system_clock.freq().to_Hz());
-
     let _sclk = pins.gpio14.into_mode::<FunctionSpi>();
     let _mosi = pins.gpio15.into_mode::<FunctionSpi>();
     let mut latch = pins.gpio13.into_push_pull_output();
@@ -198,84 +247,62 @@ fn main() -> ! {
     dim_channel.enable();
 
     dim_channel.set_duty(0xffff);
+
+    let mut system = System {
+        rows: [
+            pins.gpio2.into_push_pull_output().into(),
+            pins.gpio3.into_push_pull_output().into(),
+            pins.gpio4.into_push_pull_output().into(),
+            pins.gpio5.into_push_pull_output().into(),
+            pins.gpio6.into_push_pull_output().into(),
+            pins.gpio26.into_push_pull_output().into(),
+            pins.gpio22.into_push_pull_output().into(),
+            pins.gpio21.into_push_pull_output().into(),
+            pins.gpio20.into_push_pull_output().into(),
+            pins.gpio19.into_push_pull_output().into(),
+        ],
+        columns: [
+            pins.gpio7.into_pull_up_input().into(),
+            pins.gpio8.into_pull_up_input().into(),
+            pins.gpio9.into_pull_up_input().into(),
+            pins.gpio10.into_pull_up_input().into(),
+            pins.gpio11.into_pull_up_input().into(),
+            pins.gpio12.into_pull_up_input().into(),
+        ],
+        left_encoder: [
+            pins.gpio0.into_pull_up_input().into(),
+            pins.gpio1.into_pull_up_input().into(),
+        ],
+        right_encoder: [
+            pins.gpio27.into_pull_up_input().into(),
+            pins.gpio28.into_pull_up_input().into(),
+        ],
+        pressed_keys: [0u8; 10],
+        layer_mask: 1,
+        report: NkroKeyboardReport::new(),
+        changed: false,
+    };
+
+    let mut delay = Delay::new(cp.SYST, clocks.system_clock.freq().to_Hz());
+    let timer = Timer::new(dp.TIMER, &mut dp.RESETS);
+
+    let mut matrix_countdown = timer.count_down();
+    matrix_countdown.start(200.micros());
+
+    let mut indicator = pins.gpio25.into_readable_output();
     indicator.set_high().unwrap();
 
     unsafe { cortex_m::interrupt::enable() };
 
     loop {
-        delay.delay_us(200);
-
-        for (i, row) in rows.iter_mut().enumerate() {
-            row.set_low().unwrap();
-            for (j, col) in columns.iter().enumerate() {
-                // Reverse index for right half
-                let j = if i < num_rows / 2 {
-                    j
-                } else {
-                    columns.len() - 1 - j
-                };
-
-                let prev_pressed = (pressed_keys[i] & (1 << j)) != 0;
-                let pressed = col.is_low().unwrap();
-
-                if prev_pressed != pressed {
-                    let keycode = LAYERS
-                        .iter()
-                        .enumerate()
-                        .rev()
-                        .filter(|(k, _layer)| (layer_mask & (1 << k)) != 0)
-                        .map(|(_k, layer)| layer[i][j])
-                        .find(|kc| *kc != KC_TRNS)
-                        .unwrap_or(KC_NO);
-                    match keycode {
-                        Keycode::Hid(hid_keycode) => {
-                            if pressed {
-                                report.press(hid_keycode as u8);
-                            } else {
-                                report.release(hid_keycode as u8);
-                            }
-                        }
-                        Keycode::Layer(layer_keycode) => {
-                            match layer_keycode.action() {
-                                LayerAction::Momentary => {
-                                    if pressed {
-                                        layer_mask |= 1 << layer_keycode.layer();
-                                    } else {
-                                        layer_mask &= !(1 << layer_keycode.layer());
-                                    }
-                                    report.clear_all_but_mods();
-                                }
-                                LayerAction::Toggle => {
-                                    if pressed {
-                                        layer_mask ^= 1 << layer_keycode.layer();
-                                        report.clear_all_but_mods();
-                                    }
-                                }
-                                LayerAction::Oneshot => {} //TODO
-                                LayerAction::To => {}      //TODO
-                            }
-                        }
-                        _ => {}
-                    }
-                    changed = true;
-                }
-
-                if pressed {
-                    pressed_keys[i] |= 1 << j;
-                } else {
-                    pressed_keys[i] &= !(1 << j);
-                }
-            }
-            row.set_high().unwrap();
-        }
-
-        if changed {
+        if matrix_countdown.wait().is_ok() {
+            system.poll_matrix();
             cortex_m::interrupt::free(|_cs| {
                 let usb = unsafe { USB_CTX.assume_init_mut() };
-                if usb.hid.push_input(&report).is_ok() {
-                    changed = false;
-                }
-            });
+                system.poll_hid(usb);
+            })
+        } else {
+            delay.delay_us(200);
         }
     }
 }
