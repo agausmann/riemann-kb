@@ -116,7 +116,8 @@ struct System {
     right_encoder: [DynPin; 2],
     spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
     led_latch: Pin<Gpio13, PushPullOutput>,
-    pressed_keys: [u8; 10],
+    pressed_keys_raw: [u8; 10],
+    pressed_keys_debounced: [u8; 10],
     // Power-on state of encoders is not predictable:
     encoder_states: Option<[u8; 2]>,
     layer_mask: u8,
@@ -147,10 +148,11 @@ impl System {
                     self.columns.len() - 1 - j
                 };
 
-                let prev_pressed = (self.pressed_keys[i] & (1 << j)) != 0;
+                let prev_pressed_raw = (self.pressed_keys_raw[i] & (1 << j)) != 0;
+                let prev_pressed_debounced = (self.pressed_keys_debounced[i] & (1 << j)) != 0;
                 let pressed = col.is_low().unwrap();
 
-                if prev_pressed != pressed {
+                if prev_pressed_raw == pressed && prev_pressed_debounced != pressed {
                     let keycode = LAYERS
                         .iter()
                         .enumerate()
@@ -189,13 +191,19 @@ impl System {
                         }
                         _ => {}
                     }
+
+                    if pressed {
+                        self.pressed_keys_debounced[i] |= 1 << j;
+                    } else {
+                        self.pressed_keys_debounced[i] &= !(1 << j);
+                    }
                     self.changed = true;
                 }
 
                 if pressed {
-                    self.pressed_keys[i] |= 1 << j;
+                    self.pressed_keys_raw[i] |= 1 << j;
                 } else {
-                    self.pressed_keys[i] &= !(1 << j);
+                    self.pressed_keys_raw[i] &= !(1 << j);
                 }
             }
             row.set_high().unwrap();
@@ -333,7 +341,8 @@ fn main() -> ! {
             },
         ),
         led_latch: pins.gpio13.into_push_pull_output(),
-        pressed_keys: [0u8; 10],
+        pressed_keys_raw: [0u8; 10],
+        pressed_keys_debounced: [0u8; 10],
         encoder_states: None,
         layer_mask: 1,
         report: NkroKeyboardReport::new(),
