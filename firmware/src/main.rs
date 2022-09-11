@@ -26,6 +26,7 @@ use rp2040_hal::{
     gpio::{bank0::Gpio23, DynPin, FunctionPwm, FunctionSpi, Pin, Pins, ReadableOutput},
     pac::{interrupt, Interrupt, Peripherals},
     pwm::Slices,
+    timer::Alarm,
     usb::UsbBus,
     Clock, Sio, Spi, Timer, Watchdog,
 };
@@ -283,8 +284,11 @@ fn main() -> ! {
         changed: false,
     };
 
-    let mut delay = Delay::new(cp.SYST, clocks.system_clock.freq().to_Hz());
-    let timer = Timer::new(dp.TIMER, &mut dp.RESETS);
+    let mut timer = Timer::new(dp.TIMER, &mut dp.RESETS);
+
+    let mut wakeup_alarm = timer.alarm_0().unwrap();
+    wakeup_alarm.enable_interrupt();
+    unsafe { NVIC::unmask(Interrupt::TIMER_IRQ_0) };
 
     let mut matrix_countdown = timer.count_down();
     matrix_countdown.start(200.micros());
@@ -302,7 +306,8 @@ fn main() -> ! {
                 system.poll_hid(usb);
             })
         } else {
-            delay.delay_us(200);
+            wakeup_alarm.schedule::<1, 1_000_000>(10.micros()).unwrap();
+            wfi();
         }
     }
 }
@@ -311,4 +316,16 @@ fn main() -> ! {
 fn USBCTRL_IRQ() {
     let ctx = unsafe { USB_CTX.assume_init_mut() };
     ctx.poll();
+}
+
+#[interrupt]
+fn TIMER_IRQ_0() {
+    // Just used to periodically wake CPU.
+    // TODO less hacky way to clear this interrupt?
+    unsafe {
+        Peripherals::steal()
+            .TIMER
+            .intr
+            .write(|w| w.alarm_0().set_bit());
+    }
 }
