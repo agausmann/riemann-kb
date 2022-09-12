@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+mod debounce;
+#[macro_use]
 mod digit;
 mod keycode;
 mod keymap;
@@ -15,6 +17,7 @@ use cortex_m::{
     peripheral::NVIC,
     prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_timer_CountDown},
 };
+use debounce::Debounce;
 use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
     spi::{self, Phase, Polarity},
@@ -109,21 +112,107 @@ struct PanicContext {
 
 static mut PANIC_CTX: Option<PanicContext> = None;
 
+struct Encoder {
+    a: DynPin,
+    b: DynPin,
+    debounce: Debounce<Option<i8>, 1>,
+    delta: i8,
+}
+
+impl Encoder {
+    fn new(mut a: DynPin, mut b: DynPin) -> Self {
+        a.into_pull_up_input();
+        b.into_pull_up_input();
+        Self {
+            a,
+            b,
+            debounce: Debounce::new(None),
+            delta: 0,
+        }
+    }
+
+    fn poll(&mut self) -> i8 {
+        // Map consecutive pin states to sequential numbers.
+        // Clockwise is 0-1-2-3-0, counter-clockwise is 0-3-2-1-0
+        let current_state = match (self.a.is_high().unwrap(), self.b.is_high().unwrap()) {
+            (false, false) => 0,
+            (false, true) => 1,
+            (true, true) => 2,
+            (true, false) => 3,
+        };
+        if let Some((Some(before), Some(after))) = self.debounce.update(Some(current_state)) {
+            let diff = match (before, after) {
+                (0, 0) | (1, 1) | (2, 2) | (3, 3) => 0,
+                (0, 1) | (1, 2) | (2, 3) | (3, 0) => 1,
+                (0, 3) | (1, 0) | (2, 1) | (3, 2) => -1,
+
+                // Error - state was skipped:
+                (0, 2) | (1, 3) | (2, 0) | (3, 1) => 0,
+
+                _ => unreachable!(),
+            };
+            self.delta += diff;
+            // NOTE: Signed integer division rounds toward zero,
+            // effectively same as signum(delta) * floor(abs(delta) / 2))
+            let detents = self.delta / 4;
+            self.delta %= 4;
+            detents
+        } else {
+            0
+        }
+    }
+}
+
+const ENCODER_ANIMATION: [u16; 4] = [
+    digit!(
+        1
+      .   .
+        .
+      .   .
+        .   .
+    ),
+    digit!(
+        .
+      .   1
+        .
+      .   .
+        .   .
+    ),
+    digit!(
+        .
+      .   .
+        1
+      .   .
+        .   .
+    ),
+    digit!(
+        .
+      1   .
+        .
+      .   .
+        .   .
+    ),
+];
+
 struct System {
     rows: [DynPin; 10],
     columns: [DynPin; 6],
-    left_encoder: [DynPin; 2],
-    right_encoder: [DynPin; 2],
-    spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
-    led_latch: Pin<Gpio13, PushPullOutput>,
     pressed_keys_raw: [u8; 10],
     pressed_keys_debounced: [u8; 10],
-    // Power-on state of encoders is not predictable:
-    encoder_states: Option<[u8; 2]>,
+
+    left_encoder: Encoder,
+    right_encoder: Encoder,
+    left_index: u8,
+    right_index: u8,
+
     layer_mask: u8,
-    report: NkroKeyboardReport,
+
+    input: NkroKeyboardReport,
+    input_changed: bool,
     leds: Leds,
-    changed: bool,
+
+    spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
+    led_latch: Pin<Gpio13, PushPullOutput>,
 }
 
 #[allow(dead_code)]
@@ -164,9 +253,9 @@ impl System {
                     match keycode {
                         Keycode::Hid(hid_keycode) => {
                             if pressed {
-                                self.report.press(hid_keycode as u8);
+                                self.input.press(hid_keycode as u8);
                             } else {
-                                self.report.release(hid_keycode as u8);
+                                self.input.release(hid_keycode as u8);
                             }
                         }
                         Keycode::Layer(layer_keycode) => {
@@ -177,12 +266,12 @@ impl System {
                                     } else {
                                         self.layer_mask &= !(1 << layer_keycode.layer());
                                     }
-                                    self.report.clear_all_but_mods();
+                                    self.input.clear_all_but_mods();
                                 }
                                 LayerAction::Toggle => {
                                     if pressed {
                                         self.layer_mask ^= 1 << layer_keycode.layer();
-                                        self.report.clear_all_but_mods();
+                                        self.input.clear_all_but_mods();
                                     }
                                 }
                                 LayerAction::Oneshot => {} //TODO
@@ -197,7 +286,7 @@ impl System {
                     } else {
                         self.pressed_keys_debounced[i] &= !(1 << j);
                     }
-                    self.changed = true;
+                    self.input_changed = true;
                 }
 
                 if pressed {
@@ -210,11 +299,16 @@ impl System {
         }
     }
 
-    fn poll_encoders(&mut self) {}
+    fn poll_encoders(&mut self) {
+        let left = self.left_encoder.poll();
+        let right = self.right_encoder.poll();
+        self.left_index = self.left_index.wrapping_add(left as u8);
+        self.right_index = self.right_index.wrapping_add(right as u8);
+    }
 
     fn poll_hid(&mut self, usb: &mut UsbContext, flags: &UsbFlags) {
-        if self.changed && usb.hid.push_input(&self.report).is_ok() {
-            self.changed = false;
+        if self.input_changed && usb.hid.push_input(&self.input).is_ok() {
+            self.input_changed = false;
         }
         if let Some(leds) = flags.output.take() {
             self.leds = leds;
@@ -225,9 +319,11 @@ impl System {
         let mut state = 0u16;
         if self.leds.caps {
             // Turn on right DP
-            state |= 1 << 7;
+            state |= 1 << 15;
         }
-        self.spi.write(&state.to_le_bytes()).unwrap();
+        state |= ENCODER_ANIMATION[self.left_index as usize % ENCODER_ANIMATION.len()];
+        state |= ENCODER_ANIMATION[self.right_index as usize % ENCODER_ANIMATION.len()] << 8;
+        self.spi.write(&state.to_be_bytes()).unwrap();
         self.led_latch.set_high().unwrap();
         self.led_latch.set_low().unwrap();
     }
@@ -323,14 +419,25 @@ fn main() -> ! {
             pins.gpio11.into_pull_up_input().into(),
             pins.gpio12.into_pull_up_input().into(),
         ],
-        left_encoder: [
-            pins.gpio0.into_pull_up_input().into(),
-            pins.gpio1.into_pull_up_input().into(),
-        ],
-        right_encoder: [
-            pins.gpio27.into_pull_up_input().into(),
-            pins.gpio28.into_pull_up_input().into(),
-        ],
+        pressed_keys_raw: [0u8; 10],
+        pressed_keys_debounced: [0u8; 10],
+
+        left_encoder: Encoder::new(pins.gpio0.into(), pins.gpio1.into()),
+        right_encoder: Encoder::new(pins.gpio27.into(), pins.gpio28.into()),
+        left_index: 0,
+        right_index: 0,
+
+        layer_mask: 1,
+
+        input: NkroKeyboardReport::new(),
+        input_changed: false,
+        leds: Leds {
+            raw: 0,
+            caps: false,
+            num: false,
+            scroll: false,
+        },
+
         spi: Spi::new(dp.SPI1).init(
             &mut dp.RESETS,
             clocks.peripheral_clock.freq(),
@@ -341,18 +448,6 @@ fn main() -> ! {
             },
         ),
         led_latch: pins.gpio13.into_push_pull_output(),
-        pressed_keys_raw: [0u8; 10],
-        pressed_keys_debounced: [0u8; 10],
-        encoder_states: None,
-        layer_mask: 1,
-        report: NkroKeyboardReport::new(),
-        leds: Leds {
-            raw: 0,
-            caps: false,
-            num: false,
-            scroll: false,
-        },
-        changed: false,
     };
 
     let mut timer = Timer::new(dp.TIMER, &mut dp.RESETS);
@@ -365,7 +460,7 @@ fn main() -> ! {
     matrix_timer.start(1.millis());
 
     let mut encoder_timer = timer.count_down();
-    encoder_timer.start(1.millis());
+    encoder_timer.start(500.micros());
 
     let mut leds_timer = timer.count_down();
     leds_timer.start(10.millis());
