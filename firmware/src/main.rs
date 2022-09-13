@@ -18,6 +18,7 @@ use cortex_m::{
     prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_timer_CountDown},
 };
 use debounce::Debounce;
+use digit::DIGITS;
 use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
     spi::{self, Phase, Polarity},
@@ -213,6 +214,9 @@ struct System {
 
     spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
     led_latch: Pin<Gpio13, PushPullOutput>,
+
+    press_buckets: [u8; 100],
+    bucket_index: usize,
 }
 
 #[allow(dead_code)]
@@ -282,6 +286,7 @@ impl System {
                     }
 
                     if pressed {
+                        self.press_buckets[self.bucket_index] += 1;
                         self.pressed_keys_debounced[i] |= 1 << j;
                     } else {
                         self.pressed_keys_debounced[i] &= !(1 << j);
@@ -321,8 +326,19 @@ impl System {
             // Turn on right DP
             state |= 1 << 15;
         }
-        state |= ENCODER_ANIMATION[self.left_index as usize % ENCODER_ANIMATION.len()];
-        state |= ENCODER_ANIMATION[self.right_index as usize % ENCODER_ANIMATION.len()] << 8;
+
+        let keys_per_second: u8 = self.press_buckets.iter().sum();
+        self.bucket_index = (self.bucket_index + 1) % self.press_buckets.len();
+        self.press_buckets[self.bucket_index] = 0;
+
+        if keys_per_second > 99 {
+            state = 0xffff;
+        } else {
+            state |= DIGITS[keys_per_second as usize / 10];
+            state |= DIGITS[keys_per_second as usize % 10] << 8;
+        }
+        // state |= ENCODER_ANIMATION[self.left_index as usize % ENCODER_ANIMATION.len()];
+        // state |= ENCODER_ANIMATION[self.right_index as usize % ENCODER_ANIMATION.len()] << 8;
         self.spi.write(&state.to_be_bytes()).unwrap();
         self.led_latch.set_high().unwrap();
         self.led_latch.set_low().unwrap();
@@ -396,7 +412,7 @@ fn main() -> ! {
     dim_channel.output_to(dim_pin);
     dim_channel.enable();
 
-    dim_channel.set_duty(0x0000);
+    dim_channel.set_duty(0xcccc);
 
     let mut system = System {
         rows: [
@@ -448,6 +464,9 @@ fn main() -> ! {
             },
         ),
         led_latch: pins.gpio13.into_push_pull_output(),
+
+        press_buckets: [0; 100],
+        bucket_index: 0,
     };
 
     let mut timer = Timer::new(dp.TIMER, &mut dp.RESETS);
