@@ -45,7 +45,7 @@ use rp2040_hal::{
 };
 use usb_device::{
     class_prelude::UsbBusAllocator,
-    prelude::{UsbDevice, UsbDeviceBuilder, UsbVidPid},
+    prelude::{UsbDevice, UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
 };
 use usbd_hid::{descriptor::SerializedDescriptor, hid_class::HIDClass};
 
@@ -412,8 +412,6 @@ fn main() -> ! {
     dim_channel.output_to(dim_pin);
     dim_channel.enable();
 
-    dim_channel.set_duty(0xcccc);
-
     let mut system = System {
         rows: [
             pins.gpio2.into_push_pull_output().into(),
@@ -485,11 +483,30 @@ fn main() -> ! {
     leds_timer.start(10.millis());
 
     let mut indicator = pins.gpio25.into_readable_output();
-    indicator.set_high().unwrap();
+    let mut prev_active = false;
 
     unsafe { cortex_m::interrupt::enable() };
 
     loop {
+        let active = cortex_m::interrupt::free(|_cs| {
+            unsafe { USB_CTX.assume_init_mut() }.device.state() == UsbDeviceState::Configured
+        });
+        if prev_active != active {
+            indicator.set_state(active.into()).unwrap();
+            if active {
+                dim_channel.set_duty(0xcccc);
+            } else {
+                dim_channel.set_duty(0xffff);
+            }
+        }
+        prev_active = active;
+
+        if !active {
+            wakeup_alarm.schedule::<1, 1_000_000>(1.millis()).unwrap();
+            wfi();
+            continue;
+        }
+
         if matrix_timer.wait().is_ok() {
             system.poll_matrix();
             cortex_m::interrupt::free(|cs| {
