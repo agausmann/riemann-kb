@@ -135,7 +135,11 @@ impl Encoder {
     fn poll(&mut self) -> i8 {
         // Map consecutive pin states to sequential numbers.
         // Clockwise is 0-1-2-3-0, counter-clockwise is 0-3-2-1-0
-        let current_state = match (self.a.is_high().unwrap(), self.b.is_high().unwrap()) {
+        let (a, b) = match (self.a.is_high(), self.b.is_high()) {
+            (Ok(x), Ok(y)) => (x, y),
+            _ => return 0,
+        };
+        let current_state = match (a, b) {
             (false, false) => 0,
             (false, true) => 1,
             (true, true) => 2,
@@ -232,7 +236,7 @@ impl System {
         let num_rows = self.rows.len();
 
         for (i, row) in self.rows.iter_mut().enumerate() {
-            row.set_low().unwrap();
+            row.set_low().ok();
             for (j, col) in self.columns.iter().enumerate() {
                 // Reverse index for right half
                 let j = if i < num_rows / 2 {
@@ -243,7 +247,7 @@ impl System {
 
                 let prev_pressed_raw = (self.pressed_keys_raw[i] & (1 << j)) != 0;
                 let prev_pressed_debounced = (self.pressed_keys_debounced[i] & (1 << j)) != 0;
-                let pressed = col.is_low().unwrap();
+                let pressed = col.is_low().unwrap_or(false);
 
                 if prev_pressed_raw == pressed && prev_pressed_debounced != pressed {
                     let keycode = LAYERS
@@ -300,7 +304,7 @@ impl System {
                     self.pressed_keys_raw[i] &= !(1 << j);
                 }
             }
-            row.set_high().unwrap();
+            row.set_high().ok();
         }
     }
 
@@ -339,9 +343,9 @@ impl System {
         }
         // state |= ENCODER_ANIMATION[self.left_index as usize % ENCODER_ANIMATION.len()];
         // state |= ENCODER_ANIMATION[self.right_index as usize % ENCODER_ANIMATION.len()] << 8;
-        self.spi.write(&state.to_be_bytes()).unwrap();
-        self.led_latch.set_high().unwrap();
-        self.led_latch.set_low().unwrap();
+        self.spi.write(&state.to_be_bytes()).ok();
+        self.led_latch.set_high().ok();
+        self.led_latch.set_low().ok();
     }
 }
 
@@ -492,7 +496,7 @@ fn main() -> ! {
             unsafe { USB_CTX.assume_init_mut() }.device.state() == UsbDeviceState::Configured
         });
         if prev_active != active {
-            indicator.set_state(active.into()).unwrap();
+            indicator.set_state(active.into()).ok();
             if active {
                 dim_channel.set_duty(0xcccc);
             } else {
@@ -502,8 +506,9 @@ fn main() -> ! {
         prev_active = active;
 
         if !active {
-            wakeup_alarm.schedule::<1, 1_000_000>(1.millis()).unwrap();
-            wfi();
+            if wakeup_alarm.schedule::<1, 1_000_000>(1.millis()).is_ok() {
+                wfi();
+            }
             continue;
         }
 
@@ -524,8 +529,9 @@ fn main() -> ! {
         } else if leds_timer.wait().is_ok() {
             system.update_leds();
         } else {
-            wakeup_alarm.schedule::<1, 1_000_000>(100.micros()).unwrap();
-            wfi();
+            if wakeup_alarm.schedule::<1, 1_000_000>(100.micros()).is_ok() {
+                wfi();
+            }
         }
     }
 }
