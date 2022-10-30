@@ -17,7 +17,7 @@ use cortex_m::{
     peripheral::NVIC,
     prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_timer_CountDown},
 };
-use debounce::Debounce;
+use debounce::{Debounce, Defer};
 use digit::DIGITS;
 use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
@@ -202,8 +202,8 @@ const ENCODER_ANIMATION: [u16; 4] = [
 struct System {
     rows: [DynPin; 10],
     columns: [DynPin; 6],
-    pressed_keys_raw: [u8; 10],
-    pressed_keys_debounced: [u8; 10],
+    pressed_keys: [u8; 10],
+    deferred_release: Defer<Keycode, 60, 5>,
 
     left_encoder: Encoder,
     right_encoder: Encoder,
@@ -233,23 +233,26 @@ struct Leds {
 
 impl System {
     fn poll_matrix(&mut self) {
-        let num_rows = self.rows.len();
+        // Handle deferred/debounced releases:
+        self.deferred_release.tick();
+        while let Some(keycode) = self.deferred_release.poll() {
+            self.handle_key_event(keycode, false);
+        }
 
-        for (i, row) in self.rows.iter_mut().enumerate() {
-            row.set_low().ok();
-            for (j, col) in self.columns.iter().enumerate() {
+        for i in 0..self.rows.len() {
+            self.rows[i].set_low().ok();
+            for j in 0..self.columns.len() {
                 // Reverse index for right half
-                let j = if i < num_rows / 2 {
+                let col_pin_index = if i < self.rows.len() / 2 {
                     j
                 } else {
                     self.columns.len() - 1 - j
                 };
 
-                let prev_pressed_raw = (self.pressed_keys_raw[i] & (1 << j)) != 0;
-                let prev_pressed_debounced = (self.pressed_keys_debounced[i] & (1 << j)) != 0;
-                let pressed = col.is_low().unwrap_or(false);
+                let prev_pressed = (self.pressed_keys[i] & (1 << j)) != 0;
+                let pressed = self.columns[col_pin_index].is_low().unwrap_or(false);
 
-                if prev_pressed_raw == pressed && prev_pressed_debounced != pressed {
+                if prev_pressed != pressed {
                     let keycode = LAYERS
                         .iter()
                         .enumerate()
@@ -258,53 +261,66 @@ impl System {
                         .map(|(_k, layer)| layer[i][j])
                         .find(|kc| *kc != KC_TRNS)
                         .unwrap_or(KC_NO);
-                    match keycode {
-                        Keycode::Hid(hid_keycode) => {
-                            if pressed {
-                                self.input.press(hid_keycode as u8);
-                            } else {
-                                self.input.release(hid_keycode as u8);
+
+                    if pressed {
+                        self.handle_key_event(keycode, pressed);
+                    } else {
+                        match self.deferred_release.defer(keycode) {
+                            Ok(()) => {}
+                            Err(keycode) => {
+                                // Handle immediately if there are really too
+                                // many releases deferred.
+                                self.handle_key_event(keycode, pressed);
                             }
                         }
-                        Keycode::Layer(layer_keycode) => {
-                            match layer_keycode.action() {
-                                LayerAction::Momentary => {
-                                    if pressed {
-                                        self.layer_mask |= 1 << layer_keycode.layer();
-                                    } else {
-                                        self.layer_mask &= !(1 << layer_keycode.layer());
-                                    }
-                                    self.input.clear_all_but_mods();
-                                }
-                                LayerAction::Toggle => {
-                                    if pressed {
-                                        self.layer_mask ^= 1 << layer_keycode.layer();
-                                        self.input.clear_all_but_mods();
-                                    }
-                                }
-                                LayerAction::Oneshot => {} //TODO
-                                LayerAction::To => {}      //TODO
-                            }
-                        }
-                        _ => {}
                     }
 
                     if pressed {
                         self.press_buckets[self.bucket_index] += 1;
-                        self.pressed_keys_debounced[i] |= 1 << j;
+                        self.pressed_keys[i] |= 1 << j;
                     } else {
-                        self.pressed_keys_debounced[i] &= !(1 << j);
+                        self.pressed_keys[i] &= !(1 << j);
                     }
-                    self.input_changed = true;
-                }
-
-                if pressed {
-                    self.pressed_keys_raw[i] |= 1 << j;
-                } else {
-                    self.pressed_keys_raw[i] &= !(1 << j);
                 }
             }
-            row.set_high().ok();
+            self.rows[i].set_high().ok();
+        }
+    }
+
+    fn handle_key_event(&mut self, keycode: Keycode, pressed: bool) {
+        match keycode {
+            Keycode::Hid(hid_keycode) => {
+                if pressed {
+                    self.input.press(hid_keycode as u8);
+                    self.input_changed = true;
+                } else {
+                    self.input.release(hid_keycode as u8);
+                    self.input_changed = true;
+                }
+            }
+            Keycode::Layer(layer_keycode) => {
+                match layer_keycode.action() {
+                    LayerAction::Momentary => {
+                        if pressed {
+                            self.layer_mask |= 1 << layer_keycode.layer();
+                        } else {
+                            self.layer_mask &= !(1 << layer_keycode.layer());
+                        }
+                        self.input.clear_all_but_mods();
+                        self.input_changed = true;
+                    }
+                    LayerAction::Toggle => {
+                        if pressed {
+                            self.layer_mask ^= 1 << layer_keycode.layer();
+                            self.input.clear_all_but_mods();
+                            self.input_changed = true;
+                        }
+                    }
+                    LayerAction::Oneshot => {} //TODO
+                    LayerAction::To => {}      //TODO
+                }
+            }
+            _ => {}
         }
     }
 
@@ -437,8 +453,8 @@ fn main() -> ! {
             pins.gpio11.into_pull_up_input().into(),
             pins.gpio12.into_pull_up_input().into(),
         ],
-        pressed_keys_raw: [0u8; 10],
-        pressed_keys_debounced: [0u8; 10],
+        pressed_keys: [0u8; 10],
+        deferred_release: Defer::new(),
 
         left_encoder: Encoder::new(pins.gpio0.into(), pins.gpio1.into()),
         right_encoder: Encoder::new(pins.gpio27.into(), pins.gpio28.into()),
