@@ -494,13 +494,8 @@ fn main() -> ! {
     unsafe { NVIC::unmask(Interrupt::TIMER_IRQ_0) };
 
     let mut matrix_timer = timer.count_down();
-    matrix_timer.start(1.millis());
-
     let mut encoder_timer = timer.count_down();
-    encoder_timer.start(500.micros());
-
     let mut leds_timer = timer.count_down();
-    leds_timer.start(10.millis());
 
     let mut indicator = pins.gpio25.into_readable_output();
     let mut prev_active = false;
@@ -514,6 +509,10 @@ fn main() -> ! {
         if prev_active != active {
             indicator.set_state(active.into()).ok();
             if active {
+                matrix_timer.start(1.millis());
+                encoder_timer.start(500.micros());
+                leds_timer.start(10.millis());
+
                 dim_channel.set_duty(0xcccc);
             } else {
                 dim_channel.set_duty(0xffff);
