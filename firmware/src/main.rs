@@ -1,36 +1,38 @@
 #![no_std]
 #![no_main]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 mod debounce;
 #[macro_use]
 mod digit;
+mod encoder;
 mod keycode;
 mod keymap;
 mod nkro;
+mod usb;
 
-use core::{cell::Cell, mem::MaybeUninit, panic::PanicInfo};
-
-use cortex_m::{
-    asm::wfi,
-    delay::Delay,
-    interrupt::Mutex,
-    peripheral::NVIC,
-    prelude::{_embedded_hal_blocking_spi_Write, _embedded_hal_timer_CountDown},
+use crate::{
+    debounce::Defer,
+    digit::DIGITS,
+    encoder::Encoder,
+    keycode::{
+        qmk::{KC_NO, KC_TRNS},
+        HidKeycode, Keycode, LayerAction,
+    },
+    keymap::LAYERS,
+    nkro::NkroKeyboardReport,
+    usb::Leds,
 };
-use debounce::{Debounce, Defer};
-use digit::DIGITS;
+use core::panic::PanicInfo;
+use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
 use embedded_hal::{
+    blocking::spi::Write,
     digital::v2::{InputPin, OutputPin},
     spi::{self, Phase, Polarity},
+    timer::CountDown,
     PwmPin,
 };
 use fugit::{ExtU32, HertzU32, RateExtU32};
-use keycode::{
-    qmk::{KC_NO, KC_TRNS},
-    Keycode, LayerAction,
-};
-use keymap::LAYERS;
-use nkro::NkroKeyboardReport;
 use rp2040_hal::{
     clocks, entry,
     gpio::{
@@ -40,14 +42,9 @@ use rp2040_hal::{
     pac::{interrupt, Interrupt, Peripherals, SPI1},
     pwm::Slices,
     timer::Alarm,
-    usb::UsbBus,
     Clock, Sio, Spi, Timer, Watchdog,
 };
-use usb_device::{
-    class_prelude::UsbBusAllocator,
-    prelude::{UsbDevice, UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
-};
-use usbd_hid::{descriptor::SerializedDescriptor, hid_class::HIDClass};
+use usb_device::prelude::UsbDeviceState;
 
 #[link_section = ".boot2"]
 #[used]
@@ -74,130 +71,12 @@ fn panic(info: &PanicInfo) -> ! {
     }
 }
 
-struct UsbContext {
-    device: UsbDevice<'static, UsbBus>,
-    hid: HIDClass<'static, UsbBus>,
-}
-
-impl UsbContext {
-    fn poll(&mut self, flags: &UsbFlags) {
-        self.device.poll(&mut [&mut self.hid]);
-        let mut leds = [0u8; 1];
-        if self.hid.pull_raw_output(&mut leds).is_ok() {
-            flags.output.set(Some(Leds {
-                raw: leds[0],
-                num: leds[0] & (1 << 0) != 0,
-                caps: leds[0] & (1 << 1) != 0,
-                scroll: leds[0] & (1 << 2) != 0,
-            }));
-        }
-    }
-}
-
-struct UsbFlags {
-    output: Cell<Option<Leds>>,
-}
-
-// Resources sent to the USB interrupt contexts.
-static mut USB_CTX: MaybeUninit<UsbContext> = MaybeUninit::uninit();
-
-// TODO more granular mutex based on which interrupts access this
-static USB_FLAGS: Mutex<UsbFlags> = Mutex::new(UsbFlags {
-    output: Cell::new(None),
-});
-
 struct PanicContext {
     indicator: Pin<Gpio23, ReadableOutput>,
     system_clock: HertzU32,
 }
 
 static mut PANIC_CTX: Option<PanicContext> = None;
-
-struct Encoder {
-    a: DynPin,
-    b: DynPin,
-    debounce: Debounce<Option<i8>, 1>,
-    delta: i8,
-}
-
-impl Encoder {
-    fn new(mut a: DynPin, mut b: DynPin) -> Self {
-        a.into_pull_up_input();
-        b.into_pull_up_input();
-        Self {
-            a,
-            b,
-            debounce: Debounce::new(None),
-            delta: 0,
-        }
-    }
-
-    fn poll(&mut self) -> i8 {
-        // Map consecutive pin states to sequential numbers.
-        // Clockwise is 0-1-2-3-0, counter-clockwise is 0-3-2-1-0
-        let (a, b) = match (self.a.is_high(), self.b.is_high()) {
-            (Ok(x), Ok(y)) => (x, y),
-            _ => return 0,
-        };
-        let current_state = match (a, b) {
-            (false, false) => 0,
-            (false, true) => 1,
-            (true, true) => 2,
-            (true, false) => 3,
-        };
-        if let Some((Some(before), Some(after))) = self.debounce.update(Some(current_state)) {
-            let diff = match (before, after) {
-                (0, 0) | (1, 1) | (2, 2) | (3, 3) => 0,
-                (0, 1) | (1, 2) | (2, 3) | (3, 0) => 1,
-                (0, 3) | (1, 0) | (2, 1) | (3, 2) => -1,
-
-                // Error - state was skipped:
-                (0, 2) | (1, 3) | (2, 0) | (3, 1) => 0,
-
-                _ => unreachable!(),
-            };
-            self.delta += diff;
-            // NOTE: Signed integer division rounds toward zero,
-            // effectively same as signum(delta) * floor(abs(delta) / 2))
-            let detents = self.delta / 4;
-            self.delta %= 4;
-            detents
-        } else {
-            0
-        }
-    }
-}
-
-const ENCODER_ANIMATION: [u16; 4] = [
-    digit!(
-        1
-      .   .
-        .
-      .   .
-        .   .
-    ),
-    digit!(
-        .
-      .   1
-        .
-      .   .
-        .   .
-    ),
-    digit!(
-        .
-      .   .
-        1
-      .   .
-        .   .
-    ),
-    digit!(
-        .
-      1   .
-        .
-      .   .
-        .   .
-    ),
-];
 
 struct System {
     rows: [DynPin; 10],
@@ -221,14 +100,6 @@ struct System {
 
     press_buckets: [u8; 100],
     bucket_index: usize,
-}
-
-#[allow(dead_code)]
-struct Leds {
-    raw: u8,
-    caps: bool,
-    num: bool,
-    scroll: bool,
 }
 
 impl System {
@@ -331,8 +202,8 @@ impl System {
         self.right_index = self.right_index.wrapping_add(right as u8);
     }
 
-    fn poll_hid(&mut self, usb: &mut UsbContext, flags: &UsbFlags) {
-        if self.input_changed && usb.hid.push_input(&self.input).is_ok() {
+    fn poll_hid(&mut self, usb: &mut usb::UsbContext, flags: &usb::UsbFlags) {
+        if self.input_changed && usb.hid_mut().push_input(&self.input).is_ok() {
             self.input_changed = false;
         }
         if let Some(leds) = flags.output.take() {
@@ -393,33 +264,14 @@ fn main() -> ! {
             system_clock: clocks.system_clock.freq(),
         })
     }
-    let usb_bus = {
-        static mut USB_BUS: MaybeUninit<UsbBusAllocator<UsbBus>> = MaybeUninit::uninit();
-        unsafe {
-            USB_BUS.write(UsbBusAllocator::new(UsbBus::new(
-                dp.USBCTRL_REGS,
-                dp.USBCTRL_DPRAM,
-                clocks.usb_clock,
-                true,
-                &mut dp.RESETS,
-            )))
-        }
-    };
-
-    let usb_hid = HIDClass::new(usb_bus, NkroKeyboardReport::desc(), 1);
-    // TODO allocate a PID code https://pid.codes
-    let usb_device = UsbDeviceBuilder::new(usb_bus, UsbVidPid(0x1209, 0x0001))
-        .manufacturer("Gaussian")
-        .product("Riemann")
-        .device_release(0x0001)
-        .build();
 
     unsafe {
-        USB_CTX.write(UsbContext {
-            device: usb_device,
-            hid: usb_hid,
-        });
-        NVIC::unmask(Interrupt::USBCTRL_IRQ);
+        usb::init(
+            dp.USBCTRL_REGS,
+            dp.USBCTRL_DPRAM,
+            clocks.usb_clock,
+            &mut dp.RESETS,
+        );
     }
 
     let _sclk = pins.gpio14.into_mode::<FunctionSpi>();
@@ -503,9 +355,8 @@ fn main() -> ! {
     unsafe { cortex_m::interrupt::enable() };
 
     loop {
-        let active = cortex_m::interrupt::free(|_cs| {
-            unsafe { USB_CTX.assume_init_mut() }.device.state() == UsbDeviceState::Configured
-        });
+        let active =
+            cortex_m::interrupt::free(|cs| unsafe { usb::state(cs) }) == UsbDeviceState::Configured;
         if prev_active != active {
             indicator.set_state(active.into()).ok();
             if active {
@@ -530,15 +381,13 @@ fn main() -> ! {
         if matrix_timer.wait().is_ok() {
             system.poll_matrix();
             cortex_m::interrupt::free(|cs| {
-                let usb = unsafe { USB_CTX.assume_init_mut() };
-                let flags = USB_FLAGS.borrow(cs);
+                let (usb, flags) = unsafe { usb::borrow(cs) };
                 system.poll_hid(usb, flags);
             })
         } else if encoder_timer.wait().is_ok() {
             system.poll_encoders();
             cortex_m::interrupt::free(|cs| {
-                let usb = unsafe { USB_CTX.assume_init_mut() };
-                let flags = USB_FLAGS.borrow(cs);
+                let (usb, flags) = unsafe { usb::borrow(cs) };
                 system.poll_hid(usb, flags);
             })
         } else if leds_timer.wait().is_ok() {
@@ -549,15 +398,6 @@ fn main() -> ! {
             }
         }
     }
-}
-
-#[interrupt]
-fn USBCTRL_IRQ() {
-    cortex_m::interrupt::free(|cs| {
-        let ctx = unsafe { USB_CTX.assume_init_mut() };
-        let flags = USB_FLAGS.borrow(cs);
-        ctx.poll(flags);
-    })
 }
 
 #[interrupt]
