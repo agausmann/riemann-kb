@@ -5,6 +5,7 @@
 mod debounce;
 #[macro_use]
 mod digit;
+mod changed;
 mod encoder;
 mod keycode;
 mod keymap;
@@ -23,6 +24,7 @@ use crate::{
     nkro::NkroKeyboardReport,
     usb::Leds,
 };
+use changed::Changed;
 use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
 use embedded_hal::{
@@ -91,8 +93,7 @@ struct System {
 
     layer_mask: u8,
 
-    input: NkroKeyboardReport,
-    input_changed: bool,
+    input: Changed<NkroKeyboardReport>,
     leds: Leds,
 
     spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
@@ -163,10 +164,8 @@ impl System {
             Keycode::Hid(hid_keycode) => {
                 if pressed {
                     self.input.press(hid_keycode as u8);
-                    self.input_changed = true;
                 } else {
                     self.input.release(hid_keycode as u8);
-                    self.input_changed = true;
                 }
             }
             Keycode::Layer(layer_keycode) => {
@@ -178,13 +177,11 @@ impl System {
                             self.layer_mask &= !(1 << layer_keycode.layer());
                         }
                         self.input.clear_all_but_mods();
-                        self.input_changed = true;
                     }
                     LayerAction::Toggle => {
                         if pressed {
                             self.layer_mask ^= 1 << layer_keycode.layer();
                             self.input.clear_all_but_mods();
-                            self.input_changed = true;
                         }
                     }
                     LayerAction::Oneshot => {} //TODO
@@ -203,8 +200,8 @@ impl System {
     }
 
     fn poll_hid(&mut self, usb: &mut usb::UsbContext, flags: &usb::UsbFlags) {
-        if self.input_changed && usb.hid_mut().push_input(&self.input).is_ok() {
-            self.input_changed = false;
+        if self.input.is_changed() && usb.hid_mut().push_input(&*self.input).is_ok() {
+            self.input.take();
         }
         if let Some(leds) = flags.output.take() {
             self.leds = leds;
@@ -315,8 +312,7 @@ fn main() -> ! {
 
         layer_mask: 1,
 
-        input: NkroKeyboardReport::new(),
-        input_changed: false,
+        input: Changed::new(NkroKeyboardReport::new()),
         leds: Leds {
             raw: 0,
             caps: false,
