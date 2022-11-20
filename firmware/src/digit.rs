@@ -65,7 +65,7 @@ macro_rules! double_digit {
                 $g1
                 $e1 $c1
                 $d1 $dp1
-            ) << 8
+            ) << 0
         ) | (
             digit!(
                 $a2
@@ -73,7 +73,7 @@ macro_rules! double_digit {
                 $g2
               $e2 $c2
                 $d2 $dp2
-            ) << 0
+            ) << 8
         )
     }
 }
