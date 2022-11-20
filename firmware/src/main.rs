@@ -27,6 +27,7 @@ use crate::{
 use changed::Changed;
 use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
+use digit::{CAPS, FU, META};
 use embedded_hal::{
     blocking::spi::Write,
     digital::v2::{InputPin, OutputPin},
@@ -35,6 +36,7 @@ use embedded_hal::{
     PwmPin,
 };
 use fugit::{ExtU32, HertzU32, RateExtU32};
+use keymap::{LAYER_FU, LAYER_META};
 use rp2040_hal::{
     clocks, entry,
     gpio::{
@@ -219,11 +221,19 @@ impl System {
         self.bucket_index = (self.bucket_index + 1) % self.press_buckets.len();
         self.press_buckets[self.bucket_index] = 0;
 
-        if keys_per_second > 99 {
-            state = 0xffff;
+        if self.leds.caps {
+            state = CAPS;
+        } else if (self.layer_mask & (1 << LAYER_META)) != 0 {
+            state = META;
+        } else if (self.layer_mask & (1 << LAYER_FU)) != 0 {
+            state = FU;
         } else {
-            state |= DIGITS[keys_per_second as usize / 10];
-            state |= DIGITS[keys_per_second as usize % 10] << 8;
+            if keys_per_second > 99 {
+                state = 0xffff;
+            } else {
+                state |= DIGITS[keys_per_second as usize / 10];
+                state |= DIGITS[keys_per_second as usize % 10] << 8;
+            }
         }
         // state |= ENCODER_ANIMATION[self.left_index as usize % ENCODER_ANIMATION.len()];
         // state |= ENCODER_ANIMATION[self.right_index as usize % ENCODER_ANIMATION.len()] << 8;

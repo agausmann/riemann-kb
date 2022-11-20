@@ -151,6 +151,30 @@ pub const DIGITS: [u16; 10] = [
     ),
 ];
 
+pub const CAPS: u16 = double_digit!(
+      1         1
+    1   .     1   1
+      .         1
+    1   .     1   1
+      1    .    .    .
+);
+
+pub const FU: u16 = double_digit!(
+      1         .
+    1   .     1   1
+      1         .
+    1   .     1   1
+      .    .    1    .
+);
+
+pub const META: u16 = double_digit!(
+        1         1
+      1   .     1   1
+        1         1
+      1   .     1   1
+        1    .    .    .
+);
+
 pub const CIRCLES: &[u16] = &[
     double_digit!(
         1         1
