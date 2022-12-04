@@ -86,7 +86,7 @@ struct System {
     rows: [DynPin; 10],
     columns: [DynPin; 6],
     pressed_keys: [u8; 10],
-    deferred_release: Defer<Keycode, 60, 5>,
+    deferred_release: Defer<(u8, u8, Keycode), 60, 5>,
 
     left_encoder: Encoder,
     right_encoder: Encoder,
@@ -109,8 +109,11 @@ impl System {
     fn poll_matrix(&mut self) {
         // Handle deferred/debounced releases:
         self.deferred_release.tick();
-        while let Some(keycode) = self.deferred_release.poll() {
-            self.handle_key_event(keycode, false);
+        while let Some((row, col, keycode)) = self.deferred_release.poll() {
+            // Make sure it is still released.
+            if self.pressed_keys[row as usize] & (1 << col) == 0 {
+                self.handle_key_event(keycode, false);
+            }
         }
 
         for i in 0..self.rows.len() {
@@ -139,9 +142,9 @@ impl System {
                     if pressed {
                         self.handle_key_event(keycode, pressed);
                     } else {
-                        match self.deferred_release.defer(keycode) {
+                        match self.deferred_release.defer((i as u8, j as u8, keycode)) {
                             Ok(()) => {}
-                            Err(keycode) => {
+                            Err(..) => {
                                 // Handle immediately if there are really too
                                 // many releases deferred.
                                 self.handle_key_event(keycode, pressed);
