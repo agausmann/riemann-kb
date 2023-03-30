@@ -1,2 +1,4 @@
-pcb-export.stl
-out/
+# Fabrication outputs
+*.stl
+*.dxf
+*.svg
