@@ -37,6 +37,16 @@ mount_board_right = board_plate_width - 0.5 * plate_margin;
 plate_thickness = 3 * mm;
 case_depth = 10 * mm;
 
-plate_color = [0, 0, 0, 0.2]; // rgba
+plate_color = [ 0, 0, 0, 0.2 ]; // rgba
 
 center_cover_mounting_inset = 0.15 * inch;
+
+case_overhang = 2 * mm;
+hand_case_width = hand_plate_width + case_overhang;
+case_height = plate_height + 2 * case_overhang;
+top_shell_height = 8 * mm;
+thread_depth = 6 * mm;
+shell_chamfer = 2 * mm;
+middle_shell_standoff_height = 8 * mm;
+middle_shell_total_height = middle_shell_standoff_height + plate_thickness;
+shell_center_lip = 2 * mm;
