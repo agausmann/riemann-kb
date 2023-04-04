@@ -42,7 +42,8 @@ plate_color = [ 0, 0, 0, 0.2 ]; // rgba
 center_cover_mounting_inset = 0.15 * inch;
 
 case_overhang = 2 * mm;
-hand_case_width = hand_plate_width + case_overhang;
+hand_case_width = hand_plate_width + case_overhang + plate_margin;
+middle_shell_bridge_height = 6 * mm;
 case_height = plate_height + 2 * case_overhang;
 top_shell_height = 8 * mm;
 thread_depth = 6 * mm;
@@ -50,3 +51,19 @@ shell_chamfer = 2 * mm;
 middle_shell_standoff_height = 8 * mm;
 middle_shell_total_height = middle_shell_standoff_height + plate_thickness;
 shell_center_lip = 2 * mm;
+bottom_shell_thickness = 3 * mm;
+bottom_shell_screw_recess = 2 * mm;
+bottom_shell_skuf_inset = 8 * mm;
+bottom_shell_joint_width = 2 * mm;
+bottom_shell_joint_skew = 1 * mm;
+bottom_shell_width = hand_plate_width + case_overhang + 0.5 * center_cover_width + 0.5 * bottom_shell_joint_width;
+
+front_cover_width = center_cover_width - 2 * plate_margin;
+front_cover_height = middle_shell_total_height + top_shell_height - plate_thickness;
+front_cover_depth = plate_margin;
+
+rear_cover_thickness = 1 * mm;
+
+skuf_width = 42.0 * mm;
+skuf_height = 6.0 * mm;
+skuf_depth = 0.5 * mm;

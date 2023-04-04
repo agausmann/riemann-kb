@@ -14,19 +14,22 @@ module middle_shell()
 			square([ hand_case_width + shell_center_lip, case_height ]);
 
 			translate([ plate_margin, plate_margin ])
-			square([ hand_keyway_width, keyway_height ]);
+			square([ hand_case_width, keyway_height ]);
 
-			translate([ hand_plate_width, 0 ])
-			square([ shell_center_lip, plate_height ]);
+			// translate([ hand_plate_width, 0 ])
+			// square([ shell_center_lip, plate_height ]);
 
 			// M2 screw holes to line up with switch plate
-			m2([ mount_left, mount_bottom ]);
-			m2([ mount_hand_hcenter, mount_bottom ]);
-			m2([ mount_hand_right, mount_bottom ]);
-			m2([ mount_left, mount_vcenter ]);
-			m2([ mount_left, mount_top ]);
-			m2([ mount_hand_hcenter, mount_top ]);
-			m2([ mount_hand_right, mount_top ]);
+			m2_3dp([ mount_left, mount_bottom ]);
+			m2_3dp([ mount_hand_hcenter, mount_bottom ]);
+			m2_3dp([ mount_hand_right, mount_bottom ]);
+			m2_3dp([ mount_left, mount_vcenter ]);
+			m2_3dp([ mount_left, mount_top ]);
+			m2_3dp([ mount_hand_hcenter, mount_top ]);
+			m2_3dp([ mount_hand_right, mount_top ]);
+
+			translate([hand_case_width - case_overhang, 0])
+				square([shell_center_lip + 0.01 * mm, case_height - 2 * case_overhang]);
 		}
 
 		// Plate recess

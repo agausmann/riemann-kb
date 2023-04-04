@@ -16,9 +16,23 @@ module top_shell()
 			translate([ plate_margin, plate_margin ])
 			square([ hand_keyway_width, keyway_height ]);
 
-			translate([ hand_plate_width, 0 ])
-			square([ shell_center_lip, plate_height ]);
+			// Through holes for center cover spacers
+			translate([plate_margin + hand_keyway_width, plate_margin])
+			{
+				m2_spacer([center_cover_mounting_inset, center_cover_mounting_inset]);
+				m2_spacer([center_cover_mounting_inset, keyway_height - center_cover_mounting_inset]);
+			}
+
+			translate([2 * plate_margin + hand_keyway_width, plate_margin])
+				square([center_cover_width - 2 * plate_margin, keyway_height]);
+
+			translate([hand_case_width - case_overhang, 0 ])
+				square([shell_center_lip + 0.01 * mm, case_height - 2 * case_overhang]);
 		}
+
+		// Cutout for center cover
+		translate([plate_margin + hand_keyway_width - 0.01 * mm, 0, top_shell_height - plate_thickness])
+			cube([center_cover_width, plate_height, plate_thickness + 0.02 * mm]);
 
 		// Threaded inserts to line up with switch plate
 		translate([ 0, 0, -0.01 * mm ])
@@ -44,7 +58,7 @@ module top_shell()
 
 				translate([ 0, i * case_height, top_shell_height ])
 				rotate([ 45, 0, 0 ])
-				cube([ hand_plate_width * 2.1, shell_chamfer, shell_chamfer ], center = true);
+				cube([ hand_case_width * 2.1, shell_chamfer, shell_chamfer ], center = true);
 			}
 
 			translate([ 0, 0, top_shell_height ])
