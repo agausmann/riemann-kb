@@ -36,6 +36,7 @@ use embedded_hal::{
     PwmPin,
 };
 use fugit::{ExtU32, HertzU32, RateExtU32};
+use keycode::SystemKeycode;
 use keymap::{LAYER_FU, LAYER_META};
 use rp2040_hal::{
     clocks, entry,
@@ -45,6 +46,7 @@ use rp2040_hal::{
     },
     pac::{interrupt, Interrupt, Peripherals, SPI1},
     pwm::Slices,
+    rom_data::reset_to_usb_boot,
     timer::Alarm,
     Clock, Sio, Spi, Timer, Watchdog,
 };
@@ -193,6 +195,12 @@ impl System {
                     LayerAction::To => {}      //TODO
                 }
             }
+            Keycode::System(system_keycode) => match system_keycode {
+                SystemKeycode::Reset => {
+                    reset_to_usb_boot(1 << 25, 0);
+                }
+                _ => {}
+            },
             _ => {}
         }
     }

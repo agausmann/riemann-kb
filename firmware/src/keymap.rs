@@ -1,4 +1,4 @@
-use crate::keycode::{qmk::*, Keycode};
+use crate::keycode::{qmk::*, Keycode, SystemKeycode};
 
 pub const LAYER_LOWER: u8 = 1;
 pub const LAYER_RAISE: u8 = 2;
@@ -9,6 +9,7 @@ const MO_LOWR: Keycode = MO(LAYER_LOWER);
 const MO_RAIS: Keycode = MO(LAYER_RAISE);
 const TG_FU: Keycode = TG(LAYER_FU);
 const TG_META: Keycode = TG(LAYER_META);
+const SK_DFU: Keycode = Keycode::System(SystemKeycode::Reset);
 
 #[rustfmt::skip]
 pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
@@ -76,7 +77,7 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
     // 4: Meta
     [
         [_______, _______, _______, _______, _______, _______],
-        [_______, _______, _______, _______, _______, _______],
+        [SK_DFU , _______, _______, _______, _______, _______],
         [_______, _______, _______, _______, _______, _______],
         [_______, _______, _______, _______, _______, _______],
         [_______, _______, _______, _______, TG_META, _______],
