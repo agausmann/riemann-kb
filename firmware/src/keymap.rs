@@ -15,7 +15,7 @@ const SK_DFU: Keycode = Keycode::System(SystemKeycode::Reset);
 pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
     // 0: Base
     [
-        [XXXXXXX, KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ],
+        [KC_MUTE, KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ],
         [KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ],
         [KC_CLCK, KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ],
         [KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   ],
@@ -45,9 +45,9 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
 
     // 2: Raise
     [
-        [_______, _______, _______, _______, _______, _______],
+        [KC_MPLY, _______, _______, _______, _______, _______],
         [KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ],
-        [_______, _______, _______, _______, _______, _______],
+        [_______, _______, KC_MPLY, KC_VOLD, KC_VOLU, KC_MUTE],
         [_______, _______, _______, _______, _______, _______],
         [_______, _______, _______, _______, TG_META, _______],
 
