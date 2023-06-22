@@ -9,7 +9,7 @@ mod changed;
 mod encoder;
 mod keycode;
 mod keymap;
-mod nkro;
+mod report;
 mod usb;
 
 use crate::{
@@ -18,11 +18,9 @@ use crate::{
     encoder::Encoder,
     keycode::{
         qmk::{KC_NO, KC_TRNS},
-        HidKeycode, Keycode, LayerAction,
+        Keycode, LayerAction,
     },
     keymap::LAYERS,
-    nkro::NkroKeyboardReport,
-    usb::Leds,
 };
 use changed::Changed;
 use core::panic::PanicInfo;
@@ -38,6 +36,8 @@ use embedded_hal::{
 use fugit::{ExtU32, HertzU32, RateExtU32};
 use keycode::SystemKeycode;
 use keymap::{LAYER_FU, LAYER_META};
+use packed_struct::PackedStruct;
+use report::{ConsumerReport, KeyboardReport};
 use rp2040_hal::{
     clocks, entry,
     gpio::{
@@ -51,6 +51,10 @@ use rp2040_hal::{
     Clock, Sio, Spi, Timer, Watchdog,
 };
 use usb_device::prelude::UsbDeviceState;
+use usbd_human_interface_device::{
+    device::{keyboard::KeyboardLedsReport, DeviceClass},
+    UsbHidError,
+};
 
 #[link_section = ".boot2"]
 #[used]
@@ -97,8 +101,9 @@ struct System {
 
     layer_mask: u8,
 
-    input: Changed<NkroKeyboardReport>,
-    leds: Leds,
+    input: Changed<KeyboardReport>,
+    consumer: Changed<ConsumerReport>,
+    leds: KeyboardLedsReport,
 
     spi: Spi<rp2040_hal::spi::Enabled, SPI1, 8>,
     led_latch: Pin<Gpio13, PushPullOutput>,
@@ -168,12 +173,11 @@ impl System {
 
     fn handle_key_event(&mut self, keycode: Keycode, pressed: bool) {
         match keycode {
-            Keycode::Hid(hid_keycode) => {
-                if pressed {
-                    self.input.press(hid_keycode as u8);
-                } else {
-                    self.input.release(hid_keycode as u8);
-                }
+            Keycode::KeyboardPage(key) => {
+                self.input.set(key, pressed);
+            }
+            Keycode::ConsumerPage(key) => {
+                self.consumer.set(key, pressed);
             }
             Keycode::Layer(layer_keycode) => {
                 match layer_keycode.action() {
@@ -184,11 +188,13 @@ impl System {
                             self.layer_mask &= !(1 << layer_keycode.layer());
                         }
                         self.input.clear_all_but_mods();
+                        self.consumer.clear();
                     }
                     LayerAction::Toggle => {
                         if pressed {
                             self.layer_mask ^= 1 << layer_keycode.layer();
                             self.input.clear_all_but_mods();
+                            self.consumer.clear();
                         }
                     }
                     LayerAction::Oneshot => {} //TODO
@@ -212,18 +218,38 @@ impl System {
         self.right_index = self.right_index.wrapping_add(right as u8);
     }
 
-    fn poll_hid(&mut self, usb: &mut usb::UsbContext, flags: &usb::UsbFlags) {
-        if self.input.is_changed() && usb.hid_mut().push_input(&*self.input).is_ok() {
+    fn poll_hid(
+        &mut self,
+        usb: &mut usb::UsbContext,
+        flags: &usb::UsbFlags,
+    ) -> Result<(), UsbHidError> {
+        if self.input.is_changed() {
+            let report = self
+                .input
+                .inner()
+                .pack()
+                .map_err(|_| UsbHidError::SerializationError)?;
+            usb.keyboard().interface().write_report(&report)?;
             self.input.take();
         }
-        if let Some(leds) = flags.output.take() {
+        if self.consumer.is_changed() {
+            let report = self
+                .consumer
+                .inner()
+                .pack()
+                .map_err(|_| UsbHidError::SerializationError)?;
+            usb.consumer().interface().write_report(&report)?;
+            self.consumer.take();
+        }
+        if let Some(leds) = flags.leds.take() {
             self.leds = leds;
         }
+        Ok(())
     }
 
     fn update_leds(&mut self) {
         let mut state = 0u16;
-        if self.leds.caps {
+        if self.leds.caps_lock {
             // Turn on right DP
             state |= 1 << 15;
         }
@@ -232,7 +258,7 @@ impl System {
         self.bucket_index = (self.bucket_index + 1) % self.press_buckets.len();
         self.press_buckets[self.bucket_index] = 0;
 
-        if self.leds.caps {
+        if self.leds.caps_lock {
             state = CAPS;
         } else if (self.layer_mask & (1 << LAYER_META)) != 0 {
             state = META;
@@ -333,13 +359,9 @@ fn main() -> ! {
 
         layer_mask: 1,
 
-        input: Changed::new(NkroKeyboardReport::new()),
-        leds: Leds {
-            raw: 0,
-            caps: false,
-            num: false,
-            scroll: false,
-        },
+        input: Changed::new(KeyboardReport::new()),
+        consumer: Changed::new(ConsumerReport::new()),
+        leds: Default::default(),
 
         spi: Spi::new(dp.SPI1).init(
             &mut dp.RESETS,
@@ -399,13 +421,13 @@ fn main() -> ! {
             system.poll_matrix();
             cortex_m::interrupt::free(|cs| {
                 let (usb, flags) = unsafe { usb::borrow(cs) };
-                system.poll_hid(usb, flags);
+                system.poll_hid(usb, flags).ok();
             })
         } else if encoder_timer.wait().is_ok() {
             system.poll_encoders();
             cortex_m::interrupt::free(|cs| {
                 let (usb, flags) = unsafe { usb::borrow(cs) };
-                system.poll_hid(usb, flags);
+                system.poll_hid(usb, flags).ok();
             })
         } else if leds_timer.wait().is_ok() {
             system.update_leds();

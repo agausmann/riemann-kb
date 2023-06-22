@@ -4,6 +4,7 @@ use cortex_m::{
     peripheral::NVIC,
 };
 
+use frunk::HList;
 use rp2040_hal::{
     clocks::UsbClock,
     pac::{interrupt, Interrupt, RESETS, USBCTRL_DPRAM, USBCTRL_REGS},
@@ -12,45 +13,56 @@ use rp2040_hal::{
 use usb_device::{
     class_prelude::UsbBusAllocator,
     prelude::{UsbDevice, UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
+    UsbError,
 };
-use usbd_hid::{descriptor::SerializedDescriptor, hid_class::HIDClass};
+use usbd_human_interface_device::{
+    device::{
+        consumer::{ConsumerControlFixed, ConsumerControlFixedConfig},
+        keyboard::{KeyboardLedsReport, NKROBootKeyboard, NKROBootKeyboardConfig},
+    },
+    usb_class::{UsbHidClass, UsbHidClassBuilder},
+};
 
-use crate::nkro::NkroKeyboardReport;
+pub type HidClass = UsbHidClass<
+    'static,
+    UsbBus,
+    HList!(
+        ConsumerControlFixed<'static, UsbBus>,
+        NKROBootKeyboard<'static, UsbBus>,
+    ),
+>;
 
 pub struct UsbContext {
     device: UsbDevice<'static, UsbBus>,
-    hid: HIDClass<'static, UsbBus>,
+    hid: HidClass,
 }
 
 impl UsbContext {
-    pub fn hid_mut(&mut self) -> &mut HIDClass<'static, UsbBus> {
-        &mut self.hid
+    pub fn keyboard(&mut self) -> &mut NKROBootKeyboard<'static, UsbBus> {
+        self.hid.device::<_, _>()
+    }
+
+    pub fn consumer(&mut self) -> &mut ConsumerControlFixed<'static, UsbBus> {
+        self.hid.device::<_, _>()
     }
 
     fn poll(&mut self, flags: &UsbFlags) {
-        self.device.poll(&mut [&mut self.hid]);
-        let mut leds = [0u8; 1];
-        if self.hid.pull_raw_output(&mut leds).is_ok() {
-            flags.output.set(Some(Leds {
-                raw: leds[0],
-                num: leds[0] & (1 << 0) != 0,
-                caps: leds[0] & (1 << 1) != 0,
-                scroll: leds[0] & (1 << 2) != 0,
-            }));
+        if self.device.poll(&mut [&mut self.hid]) {
+            match self.keyboard().read_report() {
+                Err(UsbError::WouldBlock) => {}
+                Err(e) => {
+                    panic!("Failed to read LED report: {:?}", e);
+                }
+                Ok(leds) => {
+                    flags.leds.set(Some(leds));
+                }
+            }
         }
     }
 }
 
 pub struct UsbFlags {
-    pub output: Cell<Option<Leds>>,
-}
-
-#[allow(dead_code)]
-pub struct Leds {
-    pub raw: u8,
-    pub caps: bool,
-    pub num: bool,
-    pub scroll: bool,
+    pub leds: Cell<Option<KeyboardLedsReport>>,
 }
 
 // Resources sent to the USB interrupt contexts.
@@ -58,7 +70,7 @@ static mut USB_CTX: Option<UsbContext> = None;
 
 // TODO more granular mutex based on which interrupts access this
 static USB_FLAGS: Mutex<UsbFlags> = Mutex::new(UsbFlags {
-    output: Cell::new(None),
+    leds: Cell::new(None),
 });
 
 pub unsafe fn init(
@@ -75,7 +87,11 @@ pub unsafe fn init(
             )))
         }
     };
-    let usb_hid = HIDClass::new(usb_bus, NkroKeyboardReport::desc(), 1);
+
+    let usb_hid = UsbHidClassBuilder::new()
+        .add_device(NKROBootKeyboardConfig::default())
+        .add_device(ConsumerControlFixedConfig::default())
+        .build(usb_bus);
     // TODO allocate a PID code https://pid.codes
     let usb_device = UsbDeviceBuilder::new(usb_bus, UsbVidPid(0x1209, 0x0001))
         .manufacturer("Gaussian")
