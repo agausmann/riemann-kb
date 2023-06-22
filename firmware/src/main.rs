@@ -69,13 +69,16 @@ fn panic(info: &PanicInfo) -> ! {
     if let Some(ctx) = unsafe { PANIC_CTX.as_mut() } {
         let cp = unsafe { cortex_m::Peripherals::steal() };
         let mut delay = Delay::new(cp.SYST, ctx.system_clock.to_Hz());
-        loop {
+        for _ in 0..10 {
             ctx.indicator.set_high().ok();
             delay.delay_ms(250);
             ctx.indicator.set_low().ok();
             delay.delay_ms(250);
         }
     }
+
+    reset_to_usb_boot(1 << 25, 0);
+
     loop {
         wfi();
     }
