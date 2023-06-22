@@ -48,7 +48,8 @@ impl KeyboardReport {
                     if self.report.boot_keys.contains(&key) {
                         return;
                     }
-                    self.report.boot_keys.copy_within(0.., 1);
+                    let end = self.report.boot_keys.len() - 1;
+                    self.report.boot_keys.copy_within(0..end, 1);
                     self.report.boot_keys[0] = key;
                 } else {
                     let mut new_keys = [Keyboard::default(); 6];
