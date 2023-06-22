@@ -213,12 +213,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fullhouse"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "748582c837cd23144bc4c2f30d30866a2552df2a613e2dfd061e72012d26d86c"
-
-[[package]]
 name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -441,7 +435,7 @@ dependencies = [
  "embedded-hal",
  "frunk",
  "fugit",
- "fullhouse",
+ "heapless",
  "packed_struct",
  "rp2040-boot2",
  "rp2040-hal",

@@ -14,9 +14,9 @@ rp2040-boot2 = "0.2"
 rp2040-hal = { version = "0.6", features = ["rt"] }
 usb-device = "0.2"
 usbd-human-interface-device = "0.4.2"
-fullhouse = "0.2"
 frunk = { version = "0.4.2", default-features = false }
 packed_struct = { version = "0.10.1", default-features = false }
+heapless = { version = "0.7.16", default-features = false }
 
 [profile.dev]
 opt-level = 3

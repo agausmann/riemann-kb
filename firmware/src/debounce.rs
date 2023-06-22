@@ -1,4 +1,4 @@
-use fullhouse::Deque;
+use heapless::Deque;
 
 pub struct Debounce<T, const N: usize> {
     prev_raw: [T; N],

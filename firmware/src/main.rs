@@ -23,7 +23,7 @@ use crate::{
     keymap::LAYERS,
 };
 use changed::Changed;
-use fullhouse::Deque;
+use heapless::Deque;
 use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
 use digit::{CAPS, FU, META};
