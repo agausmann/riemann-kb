@@ -13,7 +13,7 @@
 ## Compatibility
 
 - MX switches (no hotswap)
-- (Optional) EC11 encoders in top left and top rigth corners
+- (Optional) EC11 encoders in top-left and top-right corners
 - Through-hole and SMD component footprints
 - Runs on Raspberry Pi Pico (and my USB-C clone, [Piccolo])
 
