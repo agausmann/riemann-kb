@@ -223,6 +223,7 @@ impl System {
         usb: &mut usb::UsbContext,
         flags: &usb::UsbFlags,
     ) -> Result<(), UsbHidError> {
+        usb.tick()?;
         if self.input.is_changed() {
             let report = self
                 .input

@@ -20,7 +20,7 @@ use usbd_human_interface_device::{
         consumer::{ConsumerControlFixed, ConsumerControlFixedConfig},
         keyboard::{KeyboardLedsReport, NKROBootKeyboard, NKROBootKeyboardConfig},
     },
-    usb_class::{UsbHidClass, UsbHidClassBuilder},
+    usb_class::{UsbHidClass, UsbHidClassBuilder}, UsbHidError,
 };
 
 pub type HidClass = UsbHidClass<
@@ -38,6 +38,10 @@ pub struct UsbContext {
 }
 
 impl UsbContext {
+    pub fn tick(&mut self) -> Result<(), UsbHidError> {
+        self.hid.tick()
+    }
+
     pub fn keyboard(&mut self) -> &mut NKROBootKeyboard<'static, UsbBus> {
         self.hid.device::<_, _>()
     }
