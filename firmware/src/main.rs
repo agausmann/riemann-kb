@@ -23,6 +23,7 @@ use crate::{
     keymap::LAYERS,
 };
 use changed::Changed;
+use fullhouse::Deque;
 use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
 use digit::{CAPS, FU, META};
@@ -34,7 +35,7 @@ use embedded_hal::{
     PwmPin,
 };
 use fugit::{ExtU32, HertzU32, RateExtU32};
-use keycode::SystemKeycode;
+use keycode::{SystemKeycode, KeyAction, qmk::{KC_AUDIO_VOL_UP, KC_AUDIO_VOL_DOWN}};
 use keymap::{LAYER_FU, LAYER_META};
 use packed_struct::PackedStruct;
 use report::{ConsumerReport, KeyboardReport};
@@ -96,6 +97,8 @@ struct System {
     columns: [DynPin; 6],
     pressed_keys: [u8; 10],
     deferred_release: Defer<(u8, u8, Keycode), 60, 5>,
+
+    queued_keys: Deque<(Keycode, KeyAction), 64>,
 
     left_encoder: Encoder,
     right_encoder: Encoder,
@@ -214,11 +217,25 @@ impl System {
         }
     }
 
+    fn queue_oneshot(&mut self, key: Keycode) {
+        // Don't queue a press if you can't also queue a release
+        if self.queued_keys.capacity() - self.queued_keys.len() >= 2 {
+            self.queued_keys.push_back((key, KeyAction::Pressed)).ok();
+            self.queued_keys.push_back((key, KeyAction::Released)).ok();
+        }
+    }
+
     fn poll_encoders(&mut self) {
         let left = self.left_encoder.poll();
         let right = self.right_encoder.poll();
         self.left_index = self.left_index.wrapping_add(left as u8);
         self.right_index = self.right_index.wrapping_add(right as u8);
+        
+        if left > 0 {
+            self.queue_oneshot(KC_AUDIO_VOL_UP);
+        } else if left < 0 {
+            self.queue_oneshot(KC_AUDIO_VOL_DOWN);
+        }
     }
 
     fn poll_hid(
@@ -227,6 +244,15 @@ impl System {
         flags: &usb::UsbFlags,
     ) -> Result<(), UsbHidError> {
         usb.tick()?;
+
+        if !self.input.is_changed() && !self.consumer.is_changed() {
+            // Handle one queued event at a time, then wait until it has been
+            // sent and the keyboard is idle.
+            if let Some((key, action)) = self.queued_keys.pop_front() {
+                self.handle_key_event(key, action.is_pressed())
+            }
+        }
+
         if self.input.is_changed() {
             let report = self
                 .input
@@ -355,6 +381,7 @@ fn main() -> ! {
         ],
         pressed_keys: [0u8; 10],
         deferred_release: Defer::new(),
+        queued_keys: Deque::new(),
 
         left_encoder: Encoder::new(pins.gpio0.into(), pins.gpio1.into()),
         right_encoder: Encoder::new(pins.gpio27.into(), pins.gpio28.into()),
