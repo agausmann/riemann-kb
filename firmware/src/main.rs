@@ -26,7 +26,7 @@ use changed::Changed;
 use heapless::Deque;
 use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
-use digit::{CAPS, FU, META};
+use digit::{CAPS, FU, META, HI};
 use embedded_hal::{
     blocking::spi::Write,
     digital::v2::{InputPin, OutputPin},
@@ -339,15 +339,6 @@ fn main() -> ! {
         })
     }
 
-    unsafe {
-        usb::init(
-            dp.USBCTRL_REGS,
-            dp.USBCTRL_DPRAM,
-            clocks.usb_clock,
-            &mut dp.RESETS,
-        );
-    }
-
     let _sclk = pins.gpio14.into_mode::<FunctionSpi>();
     let _mosi = pins.gpio15.into_mode::<FunctionSpi>();
 
@@ -357,6 +348,31 @@ fn main() -> ! {
     let mut dim_channel = dim_slice.channel_a;
     dim_channel.output_to(dim_pin);
     dim_channel.enable();
+    dim_channel.set_duty(0xffff);
+
+    let mut spi = Spi::new(dp.SPI1).init(
+        &mut dp.RESETS,
+        clocks.peripheral_clock.freq(),
+        1.MHz(),
+        &spi::Mode {
+            polarity: Polarity::IdleLow,
+            phase: Phase::CaptureOnFirstTransition,
+        },
+    );
+    let mut led_latch = pins.gpio13.into_push_pull_output();
+    spi.write(&HI.to_be_bytes()).ok();
+    led_latch.set_high().ok();
+    led_latch.set_low().ok();
+    dim_channel.set_duty(0);
+
+    unsafe {
+        usb::init(
+            dp.USBCTRL_REGS,
+            dp.USBCTRL_DPRAM,
+            clocks.usb_clock,
+            &mut dp.RESETS,
+        );
+    }
 
     let mut system = System {
         rows: [
@@ -394,16 +410,8 @@ fn main() -> ! {
         consumer: Changed::new(ConsumerReport::new()),
         leds: Default::default(),
 
-        spi: Spi::new(dp.SPI1).init(
-            &mut dp.RESETS,
-            clocks.peripheral_clock.freq(),
-            1.MHz(),
-            &spi::Mode {
-                polarity: Polarity::IdleLow,
-                phase: Phase::CaptureOnFirstTransition,
-            },
-        ),
-        led_latch: pins.gpio13.into_push_pull_output(),
+        spi,
+        led_latch,
 
         press_buckets: [0; 100],
         bucket_index: 0,
