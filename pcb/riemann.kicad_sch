@@ -485,14 +485,6 @@
   (no_connect (at 39.37 43.18) (uuid cffa0c27-a1b0-473e-9554-9957c519d41f))
   (no_connect (at 39.37 40.64) (uuid cffa0c27-a1b0-473e-9554-9957c519d420))
 
-  (wire (pts (xy 143.51 93.98) (xy 154.305 93.98))
-    (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid 0a50a70b-6d3c-41d7-a670-840f52895aab)
-  )
-  (wire (pts (xy 143.51 99.06) (xy 154.305 99.06))
-    (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid 0a6c1b30-6467-45ad-bec9-e852f08bc2dc)
-  )
   (wire (pts (xy 67.31 78.74) (xy 86.36 78.74))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 0c34477f-7356-4db8-8a96-ae8fc89c12ae)
@@ -512,10 +504,6 @@
   (wire (pts (xy 113.03 35.56) (xy 121.92 35.56))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 42cee775-6ba0-4ff8-b432-302a5374f2bd)
-  )
-  (wire (pts (xy 143.51 101.6) (xy 154.305 101.6))
-    (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid 65155116-6acc-4bac-b62e-93c3338825ee)
   )
   (wire (pts (xy 53.34 86.36) (xy 55.88 86.36))
     (stroke (width 0) (type default) (color 0 0 0 0))
@@ -545,10 +533,6 @@
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid fdd8a4b2-733c-45e8-b16c-9c50cd9db506)
   )
-  (wire (pts (xy 143.51 96.52) (xy 154.305 96.52))
-    (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid fdec3652-0fd5-4978-879f-402879a0398b)
-  )
 
   (label "LED_DIM" (at 26.67 38.1 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
@@ -562,18 +546,6 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 64e8c9e5-4cd4-4e19-bd9f-8b86c0cfc38d)
   )
-  (label "SPI1_SCK" (at 143.51 99.06 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid 665d374d-7376-4a7b-8676-428a984886a5)
-  )
-  (label "LED_DIM" (at 143.51 93.98 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid 7645a856-05d0-4410-9a84-705d330694b0)
-  )
-  (label "LED_LATCH" (at 143.51 101.6 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid 958d5b36-d8a7-40ae-80fa-cf71c354270b)
-  )
   (label "SPI1_MOSI" (at 86.36 78.74 180)
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid d39e6383-7e44-4b05-b491-e9e16fb59920)
@@ -581,10 +553,6 @@
   (label "SPI1_SCK" (at 86.36 76.2 180)
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid df1b475b-592b-442e-b8b4-16913157241a)
-  )
-  (label "SPI1_MOSI" (at 143.51 96.52 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid f2742b00-92e0-46c9-b12c-de201378822b)
   )
   (label "RESET" (at 113.03 35.56 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
@@ -793,7 +761,7 @@
     (property "Value" "10k" (id 1) (at 124.46 31.7499 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Footprint" "agausmann:R_Hybrid_SMD_THT" (id 2) (at 121.92 30.48 0)
+    (property "Footprint" "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal" (id 2) (at 121.92 30.48 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 121.92 30.48 0)
@@ -978,34 +946,6 @@
     (pin "1" (uuid 9b683e73-0b00-4cb6-a77d-82eb03d0de0e))
   )
 
-  (sheet (at 154.305 88.265) (size 21.59 17.78) (fields_autoplaced)
-    (stroke (width 0.1524) (type solid) (color 0 0 0 0))
-    (fill (color 0 0 0 0.0000))
-    (uuid d5fd88dd-5e0f-4b66-9770-06f681c0754c)
-    (property "Sheet name" "LEDs" (id 0) (at 154.305 87.5534 0)
-      (effects (font (size 1.27 1.27)) (justify left bottom))
-    )
-    (property "Sheet file" "leds.kicad_sch" (id 1) (at 154.305 106.6296 0)
-      (effects (font (size 1.27 1.27)) (justify left top))
-    )
-    (pin "DIM" input (at 154.305 93.98 180)
-      (effects (font (size 1.27 1.27)) (justify left))
-      (uuid 5df26c7c-fe11-47bd-b0b1-f73f246fc37a)
-    )
-    (pin "DIN" input (at 154.305 96.52 180)
-      (effects (font (size 1.27 1.27)) (justify left))
-      (uuid bfd398b6-1595-4f2d-9d10-68a681d730fc)
-    )
-    (pin "CLK" input (at 154.305 99.06 180)
-      (effects (font (size 1.27 1.27)) (justify left))
-      (uuid 1f91dcf5-b464-45d0-86f6-6b5a021ada13)
-    )
-    (pin "LATCH" input (at 154.305 101.6 180)
-      (effects (font (size 1.27 1.27)) (justify left))
-      (uuid 70da3e49-ab42-48b0-8ddc-bc763545c3b0)
-    )
-  )
-
   (sheet (at 180.34 31.75) (size 22.86 16.51) (fields_autoplaced)
     (stroke (width 0.1524) (type solid) (color 0 0 0 0))
     (fill (color 0 0 0 0.0000))
@@ -1079,7 +1019,6 @@
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/08a05e90-3c13-4253-8937-63f3e168fbe3" (page "60"))
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/23aec52b-c15b-456f-8101-1fb6a0b784ce" (page "61"))
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/60208bdd-5758-4608-b05e-4bf1975fa71e" (page "62"))
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c" (page "63"))
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/bac987ea-78a3-434d-9608-b5256ef50111" (page "63"))
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/a4ed828c-5f2e-40b7-891a-11e155dc8d87" (page "63"))
   )
@@ -1118,209 +1057,188 @@
     (path "/abfab3bb-0afb-4f14-b3cc-19b69e054c8a"
       (reference "#PWR0110") (unit 1) (value "GND") (footprint "")
     )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/5730da78-b923-4d7f-83dc-d93950e2aa3b"
-      (reference "#PWR0111") (unit 1) (value "+5V") (footprint "")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/3406d514-ae2a-45b3-bbcc-52b5e7cd6b8a"
-      (reference "#PWR0112") (unit 1) (value "+5V") (footprint "")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/00aaa199-5b4f-4bcd-baa8-83e3c041729e"
-      (reference "#PWR0113") (unit 1) (value "GND") (footprint "")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/ebc9ff7d-47fc-411c-b45f-811e53d19c9f"
-      (reference "#PWR0114") (unit 1) (value "GND") (footprint "")
-    )
     (path "/7e7dbca3-9e47-467e-bdd6-a2297980d75d"
       (reference "#PWR0115") (unit 1) (value "+5V") (footprint "")
     )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/94169c7b-65c0-4e11-9a3d-dfc6db095a77"
-      (reference "#PWR0116") (unit 1) (value "VCC") (footprint "")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/0030abdd-f656-41b7-afe7-511e17cee328"
-      (reference "#PWR0118") (unit 1) (value "GND") (footprint "")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/3cb7c62f-4828-47c1-aeac-2e7f15f84bf6"
-      (reference "C1") (unit 1) (value "100nF 25V") (footprint "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm")
-    )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/bac987ea-78a3-434d-9608-b5256ef50111/06ddbb55-4bd7-4125-8d25-985322242936"
-      (reference "D1") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D1") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/8775071c-bb8d-4a01-b17c-3e01958e8f79/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D2") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D2") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/4bec8ae6-168f-42ac-8924-3a4317c95376/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D3") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D3") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/ae16487c-d4bb-47bf-aece-b49c86ea49b1/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D4") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D4") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/011e3e1c-3f4d-4246-9de3-1fb863b0f5bb/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D5") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D5") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/c963491f-8fde-49a2-bca0-e009e0e19b99/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D6") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D6") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/d644b61f-39a7-4461-8b90-ad47b69122cd/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D7") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D7") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/b373bcc4-db88-4ad1-879d-2ea8d8e21226/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D8") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D8") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/4968db2c-d374-4740-a213-85cf9d3b2f43/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D9") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D9") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/7f61773c-bd43-4b71-a53c-9c7e5e98f04b/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D10") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D10") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/b4d60d44-6f17-437c-b125-f739f6009e78/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D11") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D11") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/8281105b-9676-42f7-b36e-b9f66313f83b/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D12") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D12") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/83ecd28e-cc83-44c2-9dc3-4c7ca2b8200d/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D13") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D13") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/41b60ab8-cbed-4920-9d13-2a9858d81c26/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D14") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D14") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/f88a1ab2-b07c-45b0-9943-5fe1ed242e1a/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D15") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D15") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/1fdd08a8-22cc-4fe6-98b0-cfba61fbd309/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D16") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D16") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/ce3598c8-e1ad-4cfa-83b2-311b314be1b1/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D17") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D17") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/c05d596d-3057-4340-b4da-a098e7b1ebe2/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D18") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D18") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/e2697a23-3c54-45f7-a4ce-c9ad51bddd46/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D19") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D19") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/862a240e-80a3-4c70-b08d-e7d3688e29e1/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D20") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D20") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/188e4dd3-8e15-4e96-b6ff-d76ad618e909/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D21") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D21") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/9d3fb8ff-fc95-481e-8d74-832f44e77eea/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D22") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D22") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/afbbe46d-89f5-4bbc-91ac-4c37a390af06/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D23") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D23") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/3f77299b-57bb-403d-accc-ffc93fa6e702/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D24") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D24") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/5b863eac-e483-4c0e-a042-c5469c1c7a51/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D25") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D25") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/85cca457-c319-4762-a3a8-ea635a5e727a/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D26") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D26") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/0f7e488b-179a-4f7c-aeb1-dc82c164b942/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D27") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D27") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/a572668e-2e26-452d-8023-2e538a8b143c/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D28") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D28") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/326e252b-7674-46ad-a4da-d63453bc5be3/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D29") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D29") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/1e464b25-2e25-49bb-af14-77daa79a9db9/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D30") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D30") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/edf7ce9d-bdb8-4b97-a312-bd84f52934ec/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D31") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D31") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/f02384e3-d8d6-4f14-b346-53aeca9435b7/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D32") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D32") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/bbf5868c-b46e-4d47-a93d-d382d46c11fe/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D33") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D33") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/d3b91f4e-27a8-43cd-8a81-72f7ac30aaa9/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D34") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D34") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/8b307103-03c9-49d9-b670-e729bd385f6f/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D35") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D35") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/71109b99-cc48-44e2-895a-1db4bd9fb246/06ddbb55-4bd7-4125-8d25-985322242936"
-      (reference "D36") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D36") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/3a63e5d8-68af-4e91-a4c1-0875d52a19ba/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D37") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D37") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/7ac6e019-05ed-452c-8a2c-072b80679920/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D38") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D38") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/fb153819-d61a-4446-bc40-81e263cf49b6/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D39") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D39") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/ad8d81c9-c7ca-4dfe-a54b-b6e25de64938/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D40") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D40") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/93e5110e-1ba1-42d6-9748-106fae23b421/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D41") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D41") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/8a23d4b9-e4be-44b2-b777-5202405da18a/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D42") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D42") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/7bdf52d7-6ad7-4005-99de-fb641357682c/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D43") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D43") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/cfdf93ee-22f0-46d7-9e3f-db4114596501/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D44") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D44") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/07013cc3-4abc-415c-a139-860e2ac199da/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D45") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D45") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/c70bf664-1ca9-4730-a2f1-4dfdaaf4236c/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D46") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D46") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/ba6b9030-202f-40dd-9b56-fc3daddb4a8b/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D47") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D47") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/07d5d1f5-7acf-4660-a58b-efaddd79c66c/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D48") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D48") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/4fd85941-26ac-47cc-a9df-7d884ec99a54/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D49") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D49") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/12f51ee0-b418-45f6-adbd-d43c8227a667/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D50") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D50") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/37ae52d9-a6ac-4ff5-a34d-b50f15601926/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D51") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D51") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/078deea5-d47d-4c8c-af78-c78c1ae66312/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D52") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D52") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/0937408e-f296-4a08-92c5-8d0e73d20b17/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D53") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D53") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/93067025-7887-407a-947a-d5c5e6ccf8d3/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D54") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D54") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/5aad30f2-c7ed-4cc2-a3af-2297fdbb46ee/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D55") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D55") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/b1ca3304-5cbf-40f1-84c5-bb3c3b60f676/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D56") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D56") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/08a05e90-3c13-4253-8937-63f3e168fbe3/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D57") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D57") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/23aec52b-c15b-456f-8101-1fb6a0b784ce/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D58") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D58") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/60208bdd-5758-4608-b05e-4bf1975fa71e/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D59") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D59") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/a4ed828c-5f2e-40b7-891a-11e155dc8d87/c23be3d4-d930-4bf2-9c02-8861e426f868"
-      (reference "D60") (unit 1) (value "1N4148") (footprint "agausmann:1N4148_Hybrid_SMD_THT")
+      (reference "D60") (unit 1) (value "1N4148") (footprint "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal")
     )
     (path "/b7679072-f9b9-4009-a387-9971e2390b1d"
       (reference "H1") (unit 1) (value "Acrylic Cover") (footprint "MountingHole:MountingHole_2.2mm_M2_Pad")
@@ -1335,40 +1253,37 @@
       (reference "H4") (unit 1) (value "Acrylic Cover") (footprint "MountingHole:MountingHole_2.2mm_M2_Pad")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/81248d46-b5d2-4032-abe9-3abbe011105a"
-      (reference "R1") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R1") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/548837cd-0655-47c1-8491-aa9edcfd9a70"
-      (reference "R2") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R2") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/5391f642-d2b9-47be-86ba-7eefffb985c9"
-      (reference "R3") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R3") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/d4a50740-8c0c-4373-bc41-09a6cee7b758"
-      (reference "R4") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R4") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/1c3b4ef2-b27e-4601-b67e-27dde2c9b380"
-      (reference "R5") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R5") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/1636639e-9730-4c0c-a8c1-f97eb9473ac8"
-      (reference "R6") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R6") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/71109b99-cc48-44e2-895a-1db4bd9fb246/f1e1a6a8-1690-4282-96e3-1cd1e589ac6e"
-      (reference "R7") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R7") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/71109b99-cc48-44e2-895a-1db4bd9fb246/4cd8f590-050b-473e-bad2-2f9c0e7b8c1e"
-      (reference "R8") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R8") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/bac987ea-78a3-434d-9608-b5256ef50111/f1e1a6a8-1690-4282-96e3-1cd1e589ac6e"
-      (reference "R9") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R9") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/bac987ea-78a3-434d-9608-b5256ef50111/4cd8f590-050b-473e-bad2-2f9c0e7b8c1e"
-      (reference "R10") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/9caddefb-b469-4a9a-b637-780526ceaa9c"
-      (reference "R11") (unit 1) (value "1.5k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R10") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/3235c8fb-b8e9-480b-acba-b53d09f2e1e9"
-      (reference "R12") (unit 1) (value "10k") (footprint "agausmann:R_Hybrid_SMD_THT")
+      (reference "R12") (unit 1) (value "10k") (footprint "Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal")
     )
     (path "/f0bcc3ec-0b2e-43fb-bd53-b9028198e992/bac987ea-78a3-434d-9608-b5256ef50111/98e8992f-749b-4384-8717-f48deda0e545"
       (reference "SW1") (unit 1) (value "EC11 or MX") (footprint "agausmann:Hybrid_EC11_or_MX")
@@ -1555,12 +1470,6 @@
     )
     (path "/a64c9b4a-be20-4e80-baaa-73d016003a5c"
       (reference "U1") (unit 1) (value "RaspberryPi_Pico") (footprint "agausmann:RaspberryPi_Pico")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/63715896-0d2a-4812-862a-21a7a2a4e96e"
-      (reference "U2") (unit 1) (value "MAX6969ANG+") (footprint "Package_DIP:DIP-24_W7.62mm")
-    )
-    (path "/d5fd88dd-5e0f-4b66-9770-06f681c0754c/89cdf7ab-82e4-4f67-93e2-c91627bf488c"
-      (reference "U3") (unit 1) (value "HDSP-521A") (footprint "Display_7Segment:DA56-11SURKWA")
     )
   )
 )

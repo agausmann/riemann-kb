@@ -5,6 +5,7 @@ use cortex_m::{
 };
 
 use frunk::HList;
+use fugit::ExtU32;
 use rp2040_hal::{
     clocks::UsbClock,
     pac::{interrupt, Interrupt, RESETS, USBCTRL_DPRAM, USBCTRL_REGS},
@@ -16,11 +17,17 @@ use usb_device::{
     UsbError,
 };
 use usbd_human_interface_device::{
+    descriptor::InterfaceProtocol,
     device::{
         consumer::{ConsumerControlFixed, ConsumerControlFixedConfig},
-        keyboard::{KeyboardLedsReport, NKROBootKeyboard, NKROBootKeyboardConfig},
+        keyboard::{
+            KeyboardLedsReport, NKROBootKeyboard, NKROBootKeyboardConfig,
+            NKRO_BOOT_KEYBOARD_REPORT_DESCRIPTOR,
+        },
     },
-    usb_class::{UsbHidClass, UsbHidClassBuilder}, UsbHidError,
+    interface::{InterfaceBuilder, ManagedIdleInterfaceConfig},
+    usb_class::{UsbHidClass, UsbHidClassBuilder},
+    UsbHidError,
 };
 
 pub type HidClass = UsbHidClass<
@@ -93,7 +100,21 @@ pub unsafe fn init(
     };
 
     let usb_hid = UsbHidClassBuilder::new()
-        .add_device(NKROBootKeyboardConfig::default())
+        .add_device(NKROBootKeyboardConfig::new(
+            ManagedIdleInterfaceConfig::new(
+                InterfaceBuilder::new(NKRO_BOOT_KEYBOARD_REPORT_DESCRIPTOR)
+                    .unwrap()
+                    .description("NKRO Keyboard")
+                    .boot_device(InterfaceProtocol::Keyboard)
+                    .idle_default(500.millis())
+                    .unwrap()
+                    .in_endpoint(1.millis())
+                    .unwrap()
+                    .with_out_endpoint(1.millis())
+                    .unwrap()
+                    .build(),
+            ),
+        ))
         .add_device(ConsumerControlFixedConfig::default())
         .build(usb_bus);
     // TODO allocate a PID code https://pid.codes

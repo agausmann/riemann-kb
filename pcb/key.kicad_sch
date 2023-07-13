@@ -137,7 +137,7 @@
     (uuid c23be3d4-d930-4bf2-9c02-8861e426f868)
     (property "Reference" "D7" (id 0) (at 111.76 62.23 0))
     (property "Value" "1N4148" (id 1) (at 111.76 64.77 0))
-    (property "Footprint" "agausmann:1N4148_Hybrid_SMD_THT" (id 2) (at 111.76 68.58 0)
+    (property "Footprint" "Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal" (id 2) (at 111.76 68.58 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 111.76 68.58 0)
