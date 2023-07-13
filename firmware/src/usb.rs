@@ -118,7 +118,7 @@ pub unsafe fn init(
         .add_device(ConsumerControlFixedConfig::default())
         .build(usb_bus);
     // TODO allocate a PID code https://pid.codes
-    let usb_device = UsbDeviceBuilder::new(usb_bus, UsbVidPid(0x1209, 0x0001))
+    let usb_device = UsbDeviceBuilder::new(usb_bus, UsbVidPid(0x1209, 0x4513))
         .manufacturer("Gaussian")
         .product("Riemann")
         .device_release(0x0001)
