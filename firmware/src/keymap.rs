@@ -7,8 +7,8 @@ pub const LAYER_META: u8 = 4;
 
 const MO_LOWR: Keycode = MO(LAYER_LOWER);
 const MO_RAIS: Keycode = MO(LAYER_RAISE);
+const MO_META: Keycode = MO(LAYER_META);
 const TG_FU: Keycode = TG(LAYER_FU);
-const TG_META: Keycode = TG(LAYER_META);
 const SK_DFU: Keycode = Keycode::System(SystemKeycode::Reset);
 
 const MD_NOR: Keycode = Keycode::InputMode(InputMode::Normal);
@@ -23,7 +23,7 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
         [KC_TAB , KC_Q   , KC_W   , KC_E   , KC_R   , KC_T   ],
         [KC_CLCK, KC_A   , KC_S   , KC_D   , KC_F   , KC_G   ],
         [KC_LSFT, KC_Z   , KC_X   , KC_C   , KC_V   , KC_B   ],
-        [KC_LCTL, KC_LGUI, KC_LALT, XXXXXXX, MO_LOWR, KC_ENT ],
+        [KC_LCTL, KC_LGUI, KC_LALT, MO_META, MO_LOWR, KC_ENT ],
 
         [KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , KC_BSPC],
         [KC_Y   , KC_U   , KC_I   , KC_O   , KC_P   , KC_BSPC],
@@ -44,7 +44,7 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
         [KC_HOME, KC_PGDN, KC_PGUP, KC_END , KC_INS , _______],
         [KC_LEFT, KC_DOWN, KC_UP  , KC_RGHT, KC_DEL , _______],
         [_______, KC_PAUS, KC_PSCR, KC_SLCK, _______, _______],
-        [_______, TG_META, _______, _______, _______, _______],
+        [_______, XXXXXXX, XXXXXXX, _______, _______, _______],
     ],
 
     // 2: Raise
@@ -53,7 +53,7 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
         [KC_GRV , KC_1   , KC_2   , KC_3   , KC_4   , KC_5   ],
         [_______, _______, KC_MPLY, KC_VOLD, KC_VOLU, KC_MUTE],
         [_______, _______, _______, _______, _______, _______],
-        [_______, _______, _______, _______, TG_META, _______],
+        [_______, _______, _______, XXXXXXX, XXXXXXX, _______],
 
         [_______, _______, _______, _______, _______, _______],
         [KC_6   , KC_7   , KC_8   , KC_9   , KC_0   , _______],
@@ -84,13 +84,13 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
         [SK_DFU , _______, _______, _______, _______, _______],
         [_______, _______, _______, _______, _______, _______],
         [_______, _______, _______, _______, _______, _______],
-        [_______, _______, _______, _______, TG_META, _______],
+        [_______, _______, _______, _______, XXXXXXX, _______],
 
         [_______, _______, _______, _______, _______, TG_FU  ],
         [_______, _______, _______, _______, _______, _______],
         [_______, MD_NOR , MD_REV , MD_EMO , _______, _______],
         [_______, _______, _______, _______, _______, _______],
-        [_______, TG_META, _______, _______, _______, _______],
+        [_______, XXXXXXX, _______, _______, _______, _______],
     ],
 
 ];
