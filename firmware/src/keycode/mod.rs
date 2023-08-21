@@ -24,6 +24,7 @@ impl KeyAction {
 pub enum Keycode {
     KeyboardPage(page::Keyboard),
     ConsumerPage(page::Consumer),
+    InputMode(InputMode),
     System(SystemKeycode),
     Layer(LayerKeycode),
     User(u8),
@@ -116,5 +117,33 @@ impl LayerAction {
             Self::TO => Self::To,
             _ => panic!(),
         }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InputMode {
+    // Send key events to computer as a keyboard usually would.
+    Normal,
+
+    // Send keys as Discord emojis (e.g. :regional_indicator_a:)
+    RegionalIndicator,
+
+    // Type in reverse, by sending left arrow after each key.
+    Reverse,
+}
+
+pub fn keycode_is_printable(key: page::Keyboard) -> bool {
+    let code = key as u8;
+    const A: u8 = page::Keyboard::A as u8;
+    const Z: u8 = page::Keyboard::Z as u8;
+    const K1: u8 = page::Keyboard::Keyboard1 as u8;
+    const K0: u8 = page::Keyboard::Keyboard0 as u8;
+    const ENTER: u8 = page::Keyboard::ReturnEnter as u8;
+    const SPACE: u8 = page::Keyboard::Space as u8;
+    const SLASH: u8 = page::Keyboard::ForwardSlash as u8;
+
+    match code {
+        A..=Z | K1..=K0 | ENTER | SPACE..=SLASH => true,
+        _ => false,
     }
 }

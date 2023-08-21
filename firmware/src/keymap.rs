@@ -1,4 +1,4 @@
-use crate::keycode::{qmk::*, Keycode, SystemKeycode};
+use crate::keycode::{qmk::*, InputMode, Keycode, SystemKeycode};
 
 pub const LAYER_LOWER: u8 = 1;
 pub const LAYER_RAISE: u8 = 2;
@@ -10,6 +10,10 @@ const MO_RAIS: Keycode = MO(LAYER_RAISE);
 const TG_FU: Keycode = TG(LAYER_FU);
 const TG_META: Keycode = TG(LAYER_META);
 const SK_DFU: Keycode = Keycode::System(SystemKeycode::Reset);
+
+const MD_NOR: Keycode = Keycode::InputMode(InputMode::Normal);
+const MD_EMO: Keycode = Keycode::InputMode(InputMode::RegionalIndicator);
+const MD_REV: Keycode = Keycode::InputMode(InputMode::Reverse);
 
 #[rustfmt::skip]
 pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
@@ -84,7 +88,7 @@ pub const LAYERS: [[[Keycode; 6]; 10]; 5] = [
 
         [_______, _______, _______, _______, _______, TG_FU  ],
         [_______, _______, _______, _______, _______, _______],
-        [_______, _______, _______, _______, _______, _______],
+        [_______, MD_NOR , MD_REV , MD_EMO , _______, _______],
         [_______, _______, _______, _______, _______, _______],
         [_______, TG_META, _______, _______, _______, _______],
     ],

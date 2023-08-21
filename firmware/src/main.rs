@@ -6,7 +6,9 @@ mod debounce;
 #[macro_use]
 mod digit;
 mod changed;
+mod emoji;
 mod encoder;
+mod key_macro;
 mod keycode;
 mod keymap;
 mod report;
@@ -23,10 +25,9 @@ use crate::{
     keymap::LAYERS,
 };
 use changed::Changed;
-use heapless::Deque;
 use core::panic::PanicInfo;
 use cortex_m::{asm::wfi, delay::Delay, peripheral::NVIC};
-use digit::{CAPS, FU, META, HI};
+use digit::{CAPS, EMO, FU, HI, META, REV};
 use embedded_hal::{
     blocking::spi::Write,
     digital::v2::{InputPin, OutputPin},
@@ -34,8 +35,15 @@ use embedded_hal::{
     timer::CountDown,
     PwmPin,
 };
+use emoji::emoji_macro;
 use fugit::{ExtU32, HertzU32, RateExtU32};
-use keycode::{SystemKeycode, KeyAction, qmk::{KC_AUDIO_VOL_UP, KC_AUDIO_VOL_DOWN}};
+use heapless::Deque;
+use key_macro::KeyMacro;
+use keycode::{
+    keycode_is_printable,
+    qmk::{KC_AUDIO_VOL_DOWN, KC_AUDIO_VOL_UP, KC_LSFT},
+    InputMode, KeyAction, SystemKeycode,
+};
 use keymap::{LAYER_FU, LAYER_META};
 use packed_struct::PackedStruct;
 use report::{ConsumerReport, KeyboardReport};
@@ -54,6 +62,7 @@ use rp2040_hal::{
 use usb_device::prelude::UsbDeviceState;
 use usbd_human_interface_device::{
     device::{keyboard::KeyboardLedsReport, DeviceClass},
+    page::Keyboard,
     UsbHidError,
 };
 
@@ -98,7 +107,7 @@ struct System {
     pressed_keys: [u8; 10],
     deferred_release: Defer<(u8, u8, Keycode), 60, 5>,
 
-    queued_keys: Deque<(Keycode, KeyAction), 64>,
+    queued_keys: Deque<(Keycode, KeyAction), 128>,
 
     left_encoder: Encoder,
     right_encoder: Encoder,
@@ -116,6 +125,8 @@ struct System {
 
     press_buckets: [u8; 100],
     bucket_index: usize,
+
+    mode: InputMode,
 }
 
 impl System {
@@ -125,7 +136,7 @@ impl System {
         while let Some((row, col, keycode)) = self.deferred_release.poll() {
             // Make sure it is still released.
             if self.pressed_keys[row as usize] & (1 << col) == 0 {
-                self.handle_key_event(keycode, false);
+                self.handle_user_key_event(keycode, false);
             }
         }
 
@@ -153,14 +164,14 @@ impl System {
                         .unwrap_or(KC_NO);
 
                     if pressed {
-                        self.handle_key_event(keycode, pressed);
+                        self.handle_user_key_event(keycode, pressed);
                     } else {
                         match self.deferred_release.defer((i as u8, j as u8, keycode)) {
                             Ok(()) => {}
                             Err(..) => {
                                 // Handle immediately if there are really too
                                 // many releases deferred.
-                                self.handle_key_event(keycode, pressed);
+                                self.handle_user_key_event(keycode, pressed);
                             }
                         }
                     }
@@ -174,6 +185,32 @@ impl System {
                 }
             }
             self.rows[i].set_high().ok();
+        }
+    }
+
+    fn handle_user_key_event(&mut self, keycode: Keycode, pressed: bool) {
+        match keycode {
+            Keycode::KeyboardPage(key) => match self.mode {
+                InputMode::Normal => self.input.set(key, pressed),
+                InputMode::RegionalIndicator => {
+                    if let Some(macro_str) = emoji_macro(key) {
+                        if pressed {
+                            self.queue_str(macro_str);
+                        }
+                    } else {
+                        self.input.set(key, pressed);
+                    }
+                }
+                InputMode::Reverse => {
+                    if keycode_is_printable(key) && pressed {
+                        self.queue_oneshot(keycode);
+                        self.queue_oneshot(Keycode::KeyboardPage(Keyboard::LeftArrow));
+                    } else {
+                        self.input.set(key, pressed);
+                    }
+                }
+            },
+            _ => self.handle_key_event(keycode, pressed),
         }
     }
 
@@ -211,9 +248,20 @@ impl System {
                 SystemKeycode::Reset => {
                     reset_to_usb_boot(1 << 25, 0);
                 }
-                _ => {}
+                SystemKeycode::None => {}
+                SystemKeycode::Transparent => {}
+                SystemKeycode::BacklightDown => {}
+                SystemKeycode::BacklightUp => {}
+                SystemKeycode::BacklightStep => {}
             },
-            _ => {}
+            Keycode::InputMode(mode) => {
+                if pressed {
+                    self.mode = mode;
+                    self.input.clear();
+                    self.queued_keys.clear();
+                }
+            }
+            Keycode::User(_) => {}
         }
     }
 
@@ -225,12 +273,47 @@ impl System {
         }
     }
 
+    fn queue_char(&mut self, c: char) {
+        //TODO account for caps lock
+
+        if let Some(key_macro) = KeyMacro::from_char(c) {
+            // Don't queue a press if you can't also queue a release
+            let required_length = if key_macro.shifted { 4 } else { 2 };
+            if self.queued_keys.capacity() - self.queued_keys.len() < required_length {
+                return;
+            }
+
+            if key_macro.shifted {
+                self.queued_keys
+                    .push_back((KC_LSFT, KeyAction::Pressed))
+                    .ok();
+            }
+            self.queued_keys
+                .push_back((key_macro.key, KeyAction::Pressed))
+                .ok();
+            self.queued_keys
+                .push_back((key_macro.key, KeyAction::Released))
+                .ok();
+            if key_macro.shifted {
+                self.queued_keys
+                    .push_back((KC_LSFT, KeyAction::Released))
+                    .ok();
+            }
+        }
+    }
+
+    fn queue_str(&mut self, s: &str) {
+        for c in s.chars() {
+            self.queue_char(c);
+        }
+    }
+
     fn poll_encoders(&mut self) {
         let left = self.left_encoder.poll();
         let right = self.right_encoder.poll();
         self.left_index = self.left_index.wrapping_add(left as u8);
         self.right_index = self.right_index.wrapping_add(right as u8);
-        
+
         if left > 0 {
             self.queue_oneshot(KC_AUDIO_VOL_UP);
         } else if left < 0 {
@@ -279,19 +362,25 @@ impl System {
 
     fn update_leds(&mut self) {
         let mut state = 0u16;
-        if self.leds.caps_lock {
-            // Turn on right DP
-            state |= 1 << 15;
-        }
 
         let keys_per_second: u8 = self.press_buckets.iter().sum();
         self.bucket_index = (self.bucket_index + 1) % self.press_buckets.len();
         self.press_buckets[self.bucket_index] = 0;
 
-        if self.leds.caps_lock {
-            state = CAPS;
-        } else if (self.layer_mask & (1 << LAYER_META)) != 0 {
+        if (self.layer_mask & (1 << LAYER_META)) != 0 {
             state = META;
+        } else if self.leds.caps_lock {
+            state = CAPS;
+        } else if self.mode != InputMode::Normal {
+            match self.mode {
+                InputMode::Normal => unreachable!(),
+                InputMode::RegionalIndicator => {
+                    state = EMO;
+                }
+                InputMode::Reverse => {
+                    state = REV;
+                }
+            }
         } else if (self.layer_mask & (1 << LAYER_FU)) != 0 {
             state = FU;
         } else {
@@ -302,6 +391,7 @@ impl System {
                 state |= DIGITS[keys_per_second as usize % 10] << 8;
             }
         }
+
         // state |= ENCODER_ANIMATION[self.left_index as usize % ENCODER_ANIMATION.len()];
         // state |= ENCODER_ANIMATION[self.right_index as usize % ENCODER_ANIMATION.len()] << 8;
         self.spi.write(&state.to_be_bytes()).ok();
@@ -415,6 +505,8 @@ fn main() -> ! {
 
         press_buckets: [0; 100],
         bucket_index: 0,
+
+        mode: InputMode::Normal,
     };
 
     let mut timer = Timer::new(dp.TIMER, &mut dp.RESETS);

@@ -183,6 +183,22 @@ pub const HI: u16 = double_digit!(
         .    .    .    .
 );
 
+pub const EMO: u16 = double_digit!(
+        1         .
+      1   .     .   .
+        1         1
+      1   .     .   .
+        1    .    .    .
+);
+
+pub const REV: u16 = double_digit!(
+        1         1
+      1   1     1   .
+        .         1
+      1   .     1   .
+        .    .    1    .
+);
+
 pub const CIRCLES: &[u16] = &[
     double_digit!(
         1         1
